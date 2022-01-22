@@ -1,0 +1,3 @@
+INCLUDE(UseLATEX)
+
+ADD_LATEX_DOCUMENT(Documentation.tex)
