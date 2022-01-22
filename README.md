@@ -3,12 +3,13 @@
 ## How to install
 
 ### Prerequisite
-    - gcc or clang
-    - texlive-full
+- gcc or clang
+- texlive-full
 
 ### How to build
-    1. Install the prerequisites.
-    2. Run the build.sh shell script this will create a build/ folder.
+1. Install the prerequisites.
+2. Run the build.sh shell script this will create a build/ folder.
+3. The resulting build will be in the apporiate build folders e.g. Documentation/ and Source/
 
 ## How to use
     - TODO
