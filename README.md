@@ -12,7 +12,7 @@
 3. The resulting build will be in the apporiate build folders e.g. Documentation/ and Source/
 
 ## How to use
-    - TODO
+TODO
 
 ## License
 
