@@ -1,1 +1,1 @@
-ADD_EXECUTABLE(COMS440 main.c)
+ADD_EXECUTABLE(mycc main.c)

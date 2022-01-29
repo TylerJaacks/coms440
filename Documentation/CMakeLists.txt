@@ -1,3 +1,3 @@
 INCLUDE(UseLATEX)
 
-ADD_LATEX_DOCUMENT(Documentation.tex)
+ADD_LATEX_DOCUMENT(developers.tex)

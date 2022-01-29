@@ -8,8 +8,11 @@
 
 ### How to build
 1. Install the prerequisites.
-2. Run the build.sh shell script this will create a build/ folder.
-3. The resulting build will be in the apporiate build folders e.g. Documentation/ and Source/
+2. ```mkdir build && cd build```
+3. ```cmake ...```
+4. ```make```
+
+This will build the documentation in the ```build/Documentation/Documentation.pdf``` and the program ```build/Source/mycc```
 
 ## How to use
 TODO
