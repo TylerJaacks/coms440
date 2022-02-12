@@ -8,8 +8,8 @@
 #include <stdlib.h>
 
 // Types
-typedef uint8_t  result_code_t;
-typedef const char* string_t;
+typedef int  result_code_t;
+typedef char* string_t;
 
 // Definitions
 #define SUCCESS 0;

@@ -1,3 +1,4 @@
+#include "lexer.h"
 #include "util.h"
 
 void print_usage_statements() {
@@ -5,7 +6,7 @@ void print_usage_statements() {
     fprintf(stderr, "\t mycc -mode [options] infile\n");
     fprintf(stderr, "Valid modes: \n");
     fprintf(stderr, "\t -0: Version information only\n");
-    fprintf(stderr, "\t -1: Part 1 (not yet implemented)\n");
+    fprintf(stderr, "\t -1: Part 1\n");
     fprintf(stderr, "\t -2: Part 2 (not yet implemented)\n");
     fprintf(stderr, "\t -3: Part 3 (not yet implemented)\n");
     fprintf(stderr, "\t -4: Part 4 (not yet implemented)\n");
@@ -32,7 +33,7 @@ result_code_t save_about_statements(const char *filename) {
    return result_code;
 }
 
-static struct arguments {
+struct arguments {
     int8_t mode;
     string_t output_path;
     string_t input_path;
@@ -68,6 +69,45 @@ result_code_t handle_arguments(struct arguments* arguments) {
         print_usage_statements();
     }
 
+    if (arguments->mode == '1') {
+        /**
+         * https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
+         */
+        char * buffer = 0;
+        long length;
+
+        FILE * f = fopen (arguments->input_path, "rb");
+
+        if (f) {
+            fseek (f, 0, SEEK_END);
+            length = ftell (f);
+            fseek (f, 0, SEEK_SET);
+            buffer = malloc (length);
+            if (buffer) {
+                fread (buffer, 1, length, f);
+            }
+            fclose (f);
+        }
+
+        if (buffer) {
+            lexer_state_t lexer_state;
+
+            lexer_state_initialize(&lexer_state, buffer);
+
+            token_t *token;
+
+            if (strcmp(arguments->output_path, "a.out") != 0) {
+                lexer_get_tokens(&lexer_state, &token );
+            }
+            else {
+                freopen(arguments->output_path,"w",stdout);
+                lexer_get_tokens(&lexer_state, &token);
+            }
+        }
+
+        return SUCCESS;
+    }
+
     if (isdigit(arguments->mode)) {
         if (strlen(arguments->output_path) && strlen(arguments->output_path) != 0) {
             save_about_statements(arguments->output_path);
@@ -86,10 +126,12 @@ result_code_t handle_arguments(struct arguments* arguments) {
 result_code_t main(int argc, char *argv[]) {
     result_code_t result_code = 0;
 
-    struct arguments arguments = { -1, "", "" };
+    struct arguments arguments = { -1, "a.out", "" };
 
     result_code = parse_arguments(&arguments, argc, argv);
     result_code = handle_arguments(&arguments);
+
+
 
     return result_code;
 }
