@@ -1,5 +1,7 @@
 #include "parser.h"
 
+void parser_parse_includes(parser_state_t *state);
+
 void advance_token(parser_state_t *state) {
     state->current_token_index = state->current_token_index + 1;
 }
@@ -201,7 +203,22 @@ void parser_parse_function_call(parser_state_t *state) {
                 break;
             }
 
-            if (current_token.type != TOKEN_CHARACTER_LITERAL || current_token.type != TOKEN_STRING_LITERAL || current_token.type != TOKEN_DOUBLE_LITERAL || current_token.type != TOKEN_INTEGER_LITERAL || current_token.type != TOKEN_IDENTIFIER) {
+            if (current_token.type == TOKEN_CHARACTER_LITERAL) {
+
+            }
+            else if (current_token.type == TOKEN_IDENTIFIER) {
+
+            }
+            else if (current_token.type == TOKEN_STRING_LITERAL) {
+
+            }
+            else if (current_token.type == TOKEN_DOUBLE_LITERAL) {
+
+            }
+            else if (current_token.type == TOKEN_INTEGER_LITERAL) {
+
+            }
+            else {
                 fprintf(stderr, "ERROR: Expected function arguments to be of literals or identifiers.");
                 exit(-1);
             }
@@ -238,8 +255,20 @@ void parser_parse_if(parser_state_t *state) {
     }
 }
 
+void parser_parse_includes(parser_state_t *state) {
+    token_t *current_token = &state->tokens[state->current_token_index];
+
+    if (current_token->type == TOKEN_PREPROCESSOR_DIRECTIVE_INCLUDE) {
+        advance_token(state);
+        *current_token = state->tokens[state->current_token_index];
+
+        printf("H");
+    }
+}
+
 void parser_parse_program(parser_state_t *state) {
     while (has_next_token(state)) {
         parser_parse_declarations(state);
+        parser_parse_includes(state);
     }
 }

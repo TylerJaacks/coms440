@@ -22,16 +22,16 @@ void print_about_statements() {
 }
 
 result_code_t save_about_statements(const char *filename) {
-   string_t about_str = "My bare-bones C compiler (for COM 440/540)\n\tWritten by Tyler Jaacks (tjaacks@iastate.edu)\n\tVersion 2.0\n\t28 January, 2022\n";
+    string_t about_str = "My bare-bones C compiler (for COM 440/540)\n\tWritten by Tyler Jaacks (tjaacks@iastate.edu)\n\tVersion 2.0\n\t28 January, 2022\n";
 
-   FILE *fp = fopen(filename, "w+");
+    FILE *fp = fopen(filename, "w+");
 
-   result_code_t result_code = fputs(about_str, fp);
+    result_code_t result_code = fputs(about_str, fp);
 
-   fflush(fp);
-   fclose(fp);
+    fflush(fp);
+    fclose(fp);
 
-   return result_code;
+    return result_code;
 }
 
 struct arguments {
@@ -49,13 +49,11 @@ uint8_t parse_arguments(struct arguments *arguments, int argc, char *argv[]) {
 
             if (isdigit(next_char)) {
                 arguments->mode = (int) next_char;
-            }
-            else if (next_char == 'o') {
+            } else if (next_char == 'o') {
                 arguments->output_path = argv[i + 1];
                 i++;
             }
-        }
-        else {
+        } else {
             arguments->input_path = argv[i];
         }
     }
@@ -63,7 +61,7 @@ uint8_t parse_arguments(struct arguments *arguments, int argc, char *argv[]) {
     return SUCCESS;
 }
 
-result_code_t handle_arguments(struct arguments* arguments) {
+result_code_t handle_arguments(struct arguments *arguments) {
     result_code_t result_code = SUCCESS;
 
     if (arguments->mode == -1) {
@@ -79,20 +77,20 @@ result_code_t handle_arguments(struct arguments* arguments) {
         /**
          * https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
          */
-        char * buffer = 0;
+        char *buffer = 0;
         long length;
 
-        FILE * f = fopen (arguments->input_path, "rb");
+        FILE *f = fopen(arguments->input_path, "rb");
 
         if (f) {
-            fseek (f, 0, SEEK_END);
-            length = ftell (f);
-            fseek (f, 0, SEEK_SET);
-            buffer = malloc (length);
+            fseek(f, 0, SEEK_END);
+            length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            buffer = malloc(length);
             if (buffer) {
-                fread (buffer, 1, length, f);
+                fread(buffer, 1, length, f);
             }
-            fclose (f);
+            fclose(f);
         }
 
         if (buffer) {
@@ -103,16 +101,17 @@ result_code_t handle_arguments(struct arguments* arguments) {
             token_t *token;
 
             if (strcmp(arguments->output_path, "a.out") != 0) {
-                lexer_get_tokens(&lexer_state, &token );
-            }
-            else {
-                freopen(arguments->output_path,"w",stdout);
+                lexer_get_tokens(&lexer_state, &token);
+            } else {
+                freopen(arguments->output_path, "w", stdout);
                 lexer_get_tokens(&lexer_state, &token);
             }
 
+            free(buffer);
+
             fflush(stdout);
 
-            setvbuf (stdout, NULL, _IONBF, 0);
+            setvbuf(stdout, NULL, _IONBF, 0);
 
             /**
              * TODO: Not printing.
@@ -120,7 +119,8 @@ result_code_t handle_arguments(struct arguments* arguments) {
             for (int i = 0; i < vector_size(lexer_state.tokens); i++) {
                 fprintf(stdout, "File: %s", "File.c");
 
-                fprintf(stdout, "File: %s Line: %i Id: %i Token: %i Value: %s\n", "File.c", 0, lexer_state.tokens[i].id, lexer_state.tokens[i].type, lexer_state.tokens[i].value);
+                fprintf(stdout, "File: %s Line: %i Id: %i Token: %i Value: %s\n", "File.c", 0, lexer_state.tokens[i].id,
+                        lexer_state.tokens[i].type, lexer_state.tokens[i].value);
             }
         }
 
@@ -130,20 +130,20 @@ result_code_t handle_arguments(struct arguments* arguments) {
         /**
          * https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
          */
-        char * buffer = 0;
+        char *buffer = 0;
         long length;
 
-        FILE * f = fopen (arguments->input_path, "rb");
+        FILE *f = fopen(arguments->input_path, "rb");
 
         if (f) {
-            fseek (f, 0, SEEK_END);
-            length = ftell (f);
-            fseek (f, 0, SEEK_SET);
-            buffer = malloc (length);
+            fseek(f, 0, SEEK_END);
+            length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            buffer = malloc(length);
             if (buffer) {
-                fread (buffer, 1, length, f);
+                fread(buffer, 1, length, f);
             }
-            fclose (f);
+            fclose(f);
         }
 
         if (buffer) {
@@ -156,16 +156,15 @@ result_code_t handle_arguments(struct arguments* arguments) {
             parser_state_t *parser_state = malloc(sizeof(parser_state));
 
             if (strcmp(arguments->output_path, "a.out") != 0) {
-                lexer_get_tokens(&lexer_state, &token );
+                lexer_get_tokens(&lexer_state, &token);
 
                 parser_state->tokens = lexer_state.tokens;
                 parser_state->token_count = lexer_state.token_count;
                 parser_state->current_token_index = 0;
 
                 parser_parse_program(parser_state);
-            }
-            else {
-                freopen(arguments->output_path,"w",stdout);
+            } else {
+                freopen(arguments->output_path, "w", stdout);
                 lexer_get_tokens(&lexer_state, &token);
 
                 parser_state->tokens = lexer_state.tokens;
@@ -197,7 +196,7 @@ result_code_t handle_arguments(struct arguments* arguments) {
 result_code_t main(int argc, char *argv[]) {
     result_code_t result_code = 0;
 
-    struct arguments arguments = { -1, "a.out", "" };
+    struct arguments arguments = {-1, "a.out", ""};
 
     result_code = parse_arguments(&arguments, argc, argv);
     result_code = handle_arguments(&arguments);
