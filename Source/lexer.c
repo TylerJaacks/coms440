@@ -475,8 +475,4 @@ void lexer_get_tokens(lexer_state_t *lexer_state, token_t **token) {
         lexer_lex_integers(lexer_state);
         lexer_lex_string(lexer_state);
     }
-
-    for (int i = 0; i < vector_size(lexer_state->tokens); i++) {
-        printf("File: %s Line: %i Id: %i Token: %i Value: %s\n", "File.c", 0, lexer_state->tokens[i].id, lexer_state->tokens[i].type, lexer_state->tokens[i].value);
-    }
 }

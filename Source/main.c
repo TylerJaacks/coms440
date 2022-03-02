@@ -71,6 +71,55 @@ result_code_t handle_arguments(struct arguments* arguments) {
     }
 
     if (arguments->mode == '1') {
+        print_about_statements();
+
+        return SUCCESS;
+    }
+    else if (arguments->mode == '2') {
+        /**
+         * https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
+         */
+        char * buffer = 0;
+        long length;
+
+        FILE * f = fopen (arguments->input_path, "rb");
+
+        if (f) {
+            fseek (f, 0, SEEK_END);
+            length = ftell (f);
+            fseek (f, 0, SEEK_SET);
+            buffer = malloc (length);
+            if (buffer) {
+                fread (buffer, 1, length, f);
+            }
+            fclose (f);
+        }
+
+        if (buffer) {
+            lexer_state_t lexer_state;
+
+            lexer_state_initialize(&lexer_state, buffer);
+
+            token_t *token;
+
+            if (strcmp(arguments->output_path, "a.out") != 0) {
+                lexer_get_tokens(&lexer_state, &token );
+            }
+            else {
+                freopen(arguments->output_path,"w",stdout);
+                lexer_get_tokens(&lexer_state, &token);
+            }
+
+            for (int i = 0; i < vector_size(lexer_state.tokens); i++) {
+                fprintf(stdout, "File: %s", "File.c");
+
+                fprintf(stdout, "File: %s Line: %i Id: %i Token: %i Value: %s\n", "File.c", 0, lexer_state.tokens[i].id, lexer_state.tokens[i].type, lexer_state.tokens[i].value);
+            }
+        }
+
+        return SUCCESS;
+    }
+    else if (arguments->mode == '3') {
         /**
          * https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
          */
@@ -145,160 +194,6 @@ result_code_t main(int argc, char *argv[]) {
 
     result_code = parse_arguments(&arguments, argc, argv);
     result_code = handle_arguments(&arguments);
-
-    return result_code;
-}
-
-result_code_t main2(int argc, char *argv[]) {
-    result_code_t result_code = 0;
-
-//    struct arguments arguments = { -1, "a.out", "" };
-
-//    result_code = parse_arguments(&arguments, argc, argv);
-//    result_code = handle_arguments(&arguments);
-
-    parser_state_t *parser_state = malloc(sizeof(parser_state));
-    token_t *tokens = malloc(4096 * sizeof(token_t));
-
-    token_t token = {
-            .value = "int",
-            .type = TOKEN_TYPE,
-            .id = 0
-    };
-
-    token_t token1 = {
-            .value = "a",
-            .type = TOKEN_IDENTIFIER,
-            .id = 1
-    };
-
-    token_t token2 = {
-            .value = "=",
-            .type = TOKEN_EQUAL,
-            .id = 2
-    };
-
-    token_t token3 = {
-            .value = "9",
-            .type = TOKEN_INTEGER_LITERAL,
-            .id = 3
-    };
-
-    token_t token4 = {
-            .value = ";",
-            .type = TOKEN_SEMICOLON,
-            .id = 4
-    };
-
-    token_t token5 = {
-            .value = "double",
-            .type = TOKEN_TYPE,
-            .id = 5
-    };
-
-    token_t token6 = {
-            .value = "b",
-            .type = TOKEN_IDENTIFIER,
-            .id = 6
-    };
-
-    token_t token7 = {
-            .value = ";",
-            .type = TOKEN_SEMICOLON,
-            .id = 7
-    };
-
-    token_t token8 = {
-            .value = "int",
-            .type = TOKEN_TYPE,
-            .id = 8
-    };
-
-    token_t token9 = {
-            .value = "main",
-            .type = TOKEN_IDENTIFIER,
-            .id = 9
-    };
-
-    token_t token10 = {
-            .value = "(",
-            .type = TOKEN_LEFT_PAREN,
-            .id = 10
-    };
-
-    token_t token11 = {
-            .value = "int",
-            .type = TOKEN_TYPE,
-            .id = 11
-    };
-
-    token_t token12 = {
-            .value = "argc",
-            .type = TOKEN_IDENTIFIER,
-            .id = 12
-    };
-
-    token_t token13 = {
-            .value = ",",
-            .type = TOKEN_COMMA,
-            .id = 13
-    };
-
-    token_t token14 = {
-            .value = "char",
-            .type = TOKEN_TYPE,
-            .id = 14
-    };
-
-    token_t token15 = {
-            .value = "argv",
-            .type = TOKEN_IDENTIFIER,
-            .id = 15
-    };
-
-    token_t token16 = {
-            .value = ")",
-            .type = TOKEN_RIGHT_PAREN,
-            .id = 16
-    };
-
-    token_t token17 = {
-            .value = "{",
-            .type = TOKEN_LEFT_CURLY_BRACE,
-            .id = 17
-    };
-
-    token_t token18 = {
-            .value = "}",
-            .type = TOKEN_RIGHT_CURLY_BRACE,
-            .id = 18
-    };
-
-    vector_push_back(tokens, token);
-    vector_push_back(tokens, token1);
-    vector_push_back(tokens, token2);
-    vector_push_back(tokens, token3);
-    vector_push_back(tokens, token4);
-    vector_push_back(tokens, token5);
-    vector_push_back(tokens, token6);
-    vector_push_back(tokens, token7);
-    vector_push_back(tokens, token8);
-    vector_push_back(tokens, token9);
-    vector_push_back(tokens, token10);
-    vector_push_back(tokens, token11);
-    vector_push_back(tokens, token12);
-    vector_push_back(tokens, token13);
-    vector_push_back(tokens, token14);
-    vector_push_back(tokens, token15);
-    vector_push_back(tokens, token16);
-    vector_push_back(tokens, token17);
-    vector_push_back(tokens, token18);
-
-    parser_state->tokens = tokens;
-    parser_state->token_count = 18;
-    parser_state->current_token_index = 0;
-
-    parser_parse_program(parser_state);
 
     return result_code;
 }
