@@ -97,12 +97,26 @@ result_code_t handle_arguments(struct arguments* arguments) {
 
             token_t *token;
 
+            parser_state_t *parser_state = malloc(sizeof(parser_state));
+
             if (strcmp(arguments->output_path, "a.out") != 0) {
                 lexer_get_tokens(&lexer_state, &token );
+
+                parser_state->tokens = lexer_state.tokens;
+                parser_state->token_count = lexer_state.token_count;
+                parser_state->current_token_index = 0;
+
+                parser_parse_program(parser_state);
             }
             else {
                 freopen(arguments->output_path,"w",stdout);
                 lexer_get_tokens(&lexer_state, &token);
+
+                parser_state->tokens = lexer_state.tokens;
+                parser_state->token_count = lexer_state.token_count;
+                parser_state->current_token_index = 0;
+
+                parser_parse_program(parser_state);
             }
         }
 
@@ -125,6 +139,17 @@ result_code_t handle_arguments(struct arguments* arguments) {
 }
 
 result_code_t main(int argc, char *argv[]) {
+    result_code_t result_code = 0;
+
+    struct arguments arguments = { -1, "a.out", "" };
+
+    result_code = parse_arguments(&arguments, argc, argv);
+    result_code = handle_arguments(&arguments);
+
+    return result_code;
+}
+
+result_code_t main2(int argc, char *argv[]) {
     result_code_t result_code = 0;
 
 //    struct arguments arguments = { -1, "a.out", "" };
