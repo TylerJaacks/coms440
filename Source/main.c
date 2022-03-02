@@ -110,6 +110,13 @@ result_code_t handle_arguments(struct arguments* arguments) {
                 lexer_get_tokens(&lexer_state, &token);
             }
 
+            fflush(stdout);
+
+            setvbuf (stdout, NULL, _IONBF, 0);
+
+            /**
+             * TODO: Not printing.
+             */
             for (int i = 0; i < vector_size(lexer_state.tokens); i++) {
                 fprintf(stdout, "File: %s", "File.c");
 
