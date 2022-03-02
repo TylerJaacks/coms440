@@ -214,7 +214,28 @@ void parser_parse_function_call(parser_state_t *state) {
 }
 
 void parser_parse_if(parser_state_t *state) {
+    token_t current_token = state->tokens[state->current_token_index];
 
+    if (current_token.type = TOKEN_IF) {
+        advance_token(state);
+        current_token = state->tokens[state->current_token_index];
+
+        if (current_token.type = TOKEN_LEFT_PAREN) {
+            advance_token(state);
+            current_token = state->tokens[state->current_token_index];
+
+            // TODO: Fix this.
+            if (current_token.type = TOKEN_BOOL_COND) {
+                advance_token(state);
+                current_token = state->tokens[state->current_token_index];
+
+                if (current_token.type = TOKEN_RIGHT_PAREN) {
+                    advance_token(state);
+                    current_token = state->tokens[state->current_token_index];
+                }
+            }
+        }
+    }
 }
 
 void parser_parse_program(parser_state_t *state) {
