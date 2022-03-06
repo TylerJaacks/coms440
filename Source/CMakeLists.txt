@@ -1,1 +1,1 @@
-ADD_EXECUTABLE(mycc main.c util.h lexer.c parser.c)
+ADD_EXECUTABLE(mycc lexer.cpp lexer.h token.cpp token.h main.cpp)

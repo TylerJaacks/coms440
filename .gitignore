@@ -46,5 +46,7 @@ build
 /cmake-build-debug/.cmake/api/v1/reply/target-safepdf-Debug-fab7d6e4078af6541f44.json
 /cmake-build-debug/.cmake/api/v1/query/toolchains-v1
 /cmake-build-debug/.cmake/api/v1/reply/toolchains-v1-8cb92e64865d3bca0ee1.json
+/cmake-build-debug/*
+/build/*
 /.idea/vcs.xml
 /.idea/*
