@@ -3,101 +3,45 @@
 //
 
 #include "parser.h"
+#include "parser_result.h"
 
-parser::parser(std::vector<token> tokens) {
-    this->tokens = tokens;
-    this->currentTokenIndex = 0;
-    this->totalTokens = tokens.size();
+#include "ast.h"
+
+token parser::peak_previous_token() {
+    return tokens[currentTokenIndex - 1];
 }
 
-/**
- * GRAMMAR
- *
- * Program := ProgramStmt+
- *
- * ProgramStmt := PreprocessorDirective+ VarDecl+ FuncDecl+ FuncProto+
- *
- * PreprocessorDirective := TODO
- *
- * - TODO: Fix VarDecl in the form int a, b, c = 10; and int a, b, c;
- * VarDecl := Type Identifier ';' | Type Identifier '=' ArithExpr ';' | Type Identifier+ ';' | Type Identifier+ '=' ArithExpr ';'
- *
- * FuncDecl := Type Identifier '(' FuncParamDecl+ ')' '{' Stmt+ '}'
- *
- * - TODO: Fix this so there isn't a comma for the last parameter.
- * FuncParamDecl := Type Identifier ','
- *
- * Stmt := VarDecl | IfStmt | WhileStmt | DoWhileStmt | ForStmt | ElseIfStmt | ElseStmt | FuncCallStmt
- *
- * IfStmt := 'if' '(' BoolCond ')' '{' Stmt+ '}' 
- *  | 'if' '(' BoolCond ')' '{' Stmt+ '}' ElseStmt 
- *  | 'if' '(' BoolCond ')' '{' Stmt+ '}' ElseIfStmt
- *  | 'if' '(' BoolCond ')' '{' Stmt+ '}' ElseIfStmt ElseStmt
- *
- * WhileStmt := 'while' '(' BoolCond ')' '{' Stmt+ '}'
- *
- * DoWhileStmt := do '{' Stmt+ '}' 'while' '(' BoolCond ')' '{' Stmt+ '}'
- *
- * - TODO: Maybe don't have a IncrementStmt by including it in the ArithExpr.
- *  ForStmt := 'for' '(' VarDecl BoolCond ';' IncrementStmt ')' '{' Stmt+ '}'
- * 
- *  ElseStmt := 'else' '{' Stmt+ '}'
- *  
- *  ElseIf := 'else' 'if' '{' Stmt+ '}'
- *
- * - TODO: Not sure if this is correct.
- * IncrementStmt := Identifier++
- *  | Identifier--
- *  | Identifier += ArithExpr
- *  | Identifier -= ArithExpr
- *  | Identifier /= ArithExpr
- *  | Identifier *= ArithExpr
- *
- * FuncCallStmt := Type Identifier '(' FuncParam+ ')'
- *
- * FuncParam := IntegerLiteral, | RealLiteral, | StringLiteral, | CharLiteral,
- *
- * - TODO: Not sure this is correct.
- * BoolCond := BoolCond
- *  | !(BoolCond)
- *  | (BoolCond < BoolCond)
- *  | (BoolCond > BoolCond)
- *  | (BoolCond <= BoolCond)
- *  | (BoolCond >= BoolCond)
- *  | (BoolCond == BoolCond)
- *  | (BoolCond != BoolCond)
- *  | !BoolCond
- *  | BoolCond < BoolCond
- *  | BoolCond > BoolCond
- *  | BoolCond <= BoolCond
- *  | BoolCond >= BoolCond
- *  | BoolCond == BoolCond
- *  | BoolCond != BoolCond
- *  | Identifier
- *  | IntegerLiteral
- *  | ArithExpr
- *
- * - TODO: Handle Precedence
- * ArithExpr :=
- *   ArithExpr ';'
- *  | (ArithExpr + ArithExpr)
- *  | ArithExpr + ArithExpr
- *  | (ArithExpr - ArithExpr)
- *  | ArithExpr - ArithExpr
- *  | ArithExpr * ArithExpr
- *  | (ArithExpr * ArithExpr)
- *  | ArithExpr / ArithExpr
- *  | (ArithExpr / ArithExpr)
- *  | ArithExpr % ArithExpr
- *  | (ArithExpr % ArithExpr)
- *  | Identifier
- *  | IntegerLiteral
- *  | RealLiteral
- */
+token parser::peak_next_token() {
+    return tokens[currentTokenIndex + 1];
+}
 
-void parser::parse() {
-    for (int i = 0; i < tokens.size(); i++) {
-        switch (tokens[i].type) {
+token parser::consume_token()  {
+    token token = tokens[currentTokenIndex];
+
+    currentTokenIndex += 1;
+
+    return token;
+}
+
+parser_result parser::parse() {
+    while (true) {
+        if (currentTokenIndex == tokens.size()) {
+            break;
+        }
+
+        token token = consume_token();
+
+        while (token.type != TOKEN_SYMBOL_SEMICOLON) {
+            printf("%s\n", token.value.c_str());
+
+            token = consume_token();
+        }
+
+        if (peak_previous_token().type != TOKEN_SYMBOL_SEMICOLON) {
+            fprintf(stderr, "ERROR: Expected a ';' but got '%s' instead. FILE: %s LINE: %i",
+                    token.value.c_str(),
+                    token.fileName.c_str(),
+                    token.lineNumber);
         }
     }
 }

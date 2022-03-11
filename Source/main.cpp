@@ -4,6 +4,7 @@
 #include <string>
 #include "token.h"
 #include "lexer.h"
+#include "parser.h"
 
 #define SUCCESS 0
 #define ERROR -1
@@ -124,7 +125,15 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '2') {
+        std::string testProgram = "int c; double d;";
 
+        lexer lexer("HelloWorld.c", testProgram);
+
+        std::vector<token> tokens = lexer.getTokens();
+
+        parser parser(tokens);
+
+        parser.parse();
     }
     else if (arguments->mode == '3') {
 
