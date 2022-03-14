@@ -50,3 +50,5 @@ build
 /build/*
 /.idea/vcs.xml
 /.idea/*
+/Folder.DotSettings.user
+/.vs

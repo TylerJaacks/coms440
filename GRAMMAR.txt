@@ -1,0 +1,80 @@
+// http://marvin.cs.uIdaho.edu/Teaching/CS445/c-Grammar.pdf
+
+S := Program
+
+Program := DeclList Decl | Decl
+
+// TODO: Create Grammar Rules for Preprocessor
+PreprocesorDirective := PreprocessorDirectiveList
+PreprocessorDirectiveList := PreprocessorDirectiveList PreprocessorDirective | PreprocessorDirective
+PreprocessorDirectiveLiteral := #include | #define | #undef | #ifdef | #ifndef | #if | #else | #endif | empty
+
+DeclList := DeclList Decl | Decl
+Decl := VarDecl | FuncDecl
+
+VarDecl := Type VarDeclList;
+ScopedVarDecl := 'static' Type VarDeclList ';' | Type VarDeclList
+VarDeclList := VarDeclList ',' VarDeclInit | VarDeclInit
+VarDeclInit := VarDeclId
+VarDeclId := Id | Id '[' NumberConstant ']'
+
+Type := 'int' | 'char' | 'float' | 'double' | 'voId'
+
+FuncDecl := Type Id '(' Params ')' Stmt | Id '(' Params ')' Stmt
+Params := ParamList | e
+ParamList := ParamList ';' ParamTypeList | ParamTypeList
+ParamTypeList := Type ParamIdList
+ParamIdList := ParamIdList ',' ParamId | ParamId
+ParamId := Id | Id '[' ']'
+
+Stmt := ExprStmt | CompoundStmt | IfStmt | WhileStmt | DoWhileStmt | ForStmt | ReturnStmt | BreakStmt
+ExprStmt := Expr ';' | ';'
+CompoundStmt := '{' LocalDecls StmtList '}'
+LocalDecls := LocalDecls ScopedVarDecl | empty
+StmtList := StmtList Stmt | empty
+ReturnStmt := 'return' Expr ';'
+BreakStmt := 'break' ';'
+
+
+IfStmt := 
+    'if' '(' SimpleExp ')' CompoundStmt |
+    'if' '(' SimpleExp ')' CompoundStmt 'else' CompoundStmt | 
+    'if' '(' SimpleExp ')' CompoundStmt 'else' IfStmt
+
+WhileStmt := 'while' '(' SimpleExp ')' CompoundStmt
+DoWhileStmt := 'do' CompoundStmt 'while' '(' SimpleExp ')' ';'
+ForStmt := 'for' '(' VarDecl SimpleExp ';' Expr ')' CompoundStmt
+
+Expr := 
+    Mutable '='   Expr | 
+    Mutable '+='  Expr | 
+    Mutable '-='  Expr | 
+    Mutable '*='  Expr | 
+    Mutable '/='  Expr |
+    Mutable '%='  Expr |
+    Mutable '<<=' Expr |
+    Mutable '>>=' Expr |
+    Mutable '&='  Expr |
+    Mutable '|='  Expr |
+    Mutable '^='  Expr |
+    Mutable '++'  |
+    Mutable '--'  |
+    SimpleExpr
+
+SimpleExpr := SimpleExpr '||' AndExpr | AndExpr
+AndExpr := SimpleExpr '&&' UnaryRelExpr | UnaryRelExpr
+UnaryRelExpr := '!' UnaryRelExpr | RelExpr
+RelExpr := SumExpr RelOp SumExpr | SumExpr
+RelOp := <= | < | > | >= | == | !=
+SumExpr := SumExpr SumOp MultExpr | MultExpr
+SumOp := '+' | '-'
+MultExpr := MultExpr MultOp UnaryRelExpr | UnaryRelExpr
+MultOp := '*' | '/' | '%'
+Factor := Immutable | Mutable
+Mutable := Id | Id '[' Expr ']' | Call | Constant
+Immutable := '(' Expr ')' | Call | Constant
+Call := Id '(' Args ')' ';'
+Args := ArgList | empty 
+ArgList := ArgList ',' Expr | Expr
+Id = [a-zA-Z_][a-zA-Z0-9_]*
+Constant := NumConstant | DoubleConstant | CharConst | StringConstant

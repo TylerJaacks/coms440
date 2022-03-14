@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "token.h"
-#include "parser_result.h"
 
 class parser {
 public:
@@ -38,13 +37,103 @@ private:
      */
     token consume_token();
 
-
 public:
-    /**
-     * Parse the parsers token input.
-     * @return the result of the parse.
-     */
-    parser_result parse();
+    void S();
+
+    void Program();
+
+    void DeclList();
+
+    void Decl();
+
+    void VarDecl();
+
+    void ScopedVarDecl();
+
+    void VarDeclList();
+
+    void VarDeclInit();
+
+    void VarDeclId();
+
+    void Type();
+
+    void FuncDecl();
+
+    void Params();
+
+    void ParamList();
+
+    void ParamTypeList();
+
+    void ParamIdList();
+
+    void ParamId();
+
+    void Stmt();
+
+    void ExprStmt();
+
+	void CompoundStmt();
+
+    void LocalDecls();
+
+	void ReturnStmt();
+
+	void BreakStmt();
+
+	void Expr();
+
+    void StmtList();
+
+    void IfStmt();
+
+	void WhileStmt();
+
+	void DoWhileStmt();
+
+	void ForStmt();
+
+    void SimpleExpr();
+
+    void AndExpr();
+
+    void UnaryRelExpr();
+
+    void RelExpr();
+
+    void RelOp();
+
+    void SumExpr();
+
+    void SumOp();
+
+    void MultExpr();
+
+    void MultOp();
+
+    void Factor();
+
+    void Mutable();
+
+    void Immutable();
+
+    void Call();
+
+    void Args();
+
+    void ArgsList();
+
+    void Constant();
+
+    void NumberConstant();
+
+    void DoubleConstant();
+
+    void CharConstant();
+
+    void StringConstant();
+    void Id();
 };
 
 #endif //COMS440_PARSER_H
