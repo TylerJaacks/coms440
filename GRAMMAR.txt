@@ -15,7 +15,7 @@ Decl := VarDecl | FuncDecl
 VarDecl := Type VarDeclList;
 ScopedVarDecl := 'static' Type VarDeclList ';' | Type VarDeclList
 VarDeclList := VarDeclList ',' VarDeclInit | VarDeclInit
-VarDeclInit := VarDeclId
+VarDeclInit := VarDeclId | VarDeclId '=' SimpleExpr
 VarDeclId := Id | Id '[' NumberConstant ']'
 
 Type := 'int' | 'char' | 'float' | 'double' | 'voId'

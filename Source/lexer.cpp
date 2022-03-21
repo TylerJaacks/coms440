@@ -54,8 +54,6 @@ void lexer::ignoreWhitespace() {
 void lexer::preprocessor() {
     if (characters[currentIndex] == '#') {
         std::string preprocessorDirectiveStr;
-
-
     }
 }
 
@@ -439,6 +437,8 @@ std::vector<token> lexer::getTokens() {
 
         if (token.type != TOKEN_UNDEFINED) tokens.push_back(token);
     }
+
+    tokens.push_back(token(TOKEN_EOF, "EOF", this->currentIndex, this->fileName));
 
     return tokens;
 }

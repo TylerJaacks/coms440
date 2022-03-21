@@ -125,7 +125,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '2') {
-        std::string testProgram = "int c; double d;";
+        std::string testProgram = "int a; double b = 4;";
 
         lexer lexer("HelloWorld.c", testProgram);
 
@@ -133,7 +133,7 @@ void handle_arguments(struct arguments *arguments) {
 
         parser parser(tokens);
 
-        parser.parse();
+        parser.S();
     }
     else if (arguments->mode == '3') {
 

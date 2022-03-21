@@ -16,11 +16,24 @@ token parser::peak_next_token() {
 }
 
 token parser::consume_token()  {
-    token token = tokens[currentTokenIndex];
+    token token;
+
+    if (currentTokenIndex != -1) {
+        token = tokens[currentTokenIndex];
+    }
+
 
     currentTokenIndex += 1;
 
     return token;
+}
+
+bool parser::is_last_character() {
+    if (currentTokenIndex + 1 == tokens.size()) {
+        return true;
+    }
+
+    return false;
 }
 
 // S := Program
@@ -28,22 +41,44 @@ void parser::S() {
     Program();
 }
 
-// Program := DeclList Decl | Decl
+// Program := DecList
 void parser::Program() {
+    if (is_last_character()) {
+        fprintf(stderr, "ERROR: Expected a non-empty file but got an empty file.");
+        exit(EXIT_FAILURE);
+    }
+
     DeclList();
-    Decl();
 }
 
 // DeclList := DeclList Decl | Decl
+// A        := A        a    | B
+
+// A  := B A'
+// A' := a A' | e
+
+// DeclList  := Decl DeclList2
+// DeclList2 := Decl DeclList2 | e
 void parser::DeclList() {
-    DeclList();
     Decl();
+    DeclList2();
+}
+
+// DeclList2 := Decl DeclList2 | e
+void parser::DeclList2() {
+    if (peak_next_token().type == TOKEN_EOF) {
+        exit(0);
+    }
+
+    Decl();
+    DeclList2();
 }
 
 // Decl := VarDecl | FuncDecl
 void parser::Decl() {
     VarDecl();
-    // FuncDecl();
+    // TODO: Fix Left Recursion for FuncDecl.
+    //FuncDecl();
 }
 
 // VarDecl := Type VarDeclList ;
@@ -55,7 +90,11 @@ void parser::VarDecl() {
         consume_token();
     }
     else {
+        std::string token = peak_next_token().value;
+
         fprintf(stderr, "ERROR: Expected a ';' but got a %s at the end of a variable declaration.", peak_next_token().value.c_str());
+
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -75,26 +114,40 @@ void parser::ScopedVarDecl() {
 }
 
 // VarDeclList := VarDeclList ',' VarDeclInit | VarDeclInit
-void parser::VarDeclList() {
-    VarDeclList();
+// A           := A                a          | B
 
+// A  := B A'
+// A' := a A' | e
+
+// VarDeclList  := VarDeclInit  VarDeclList2
+// VarDeclList2 := ',' VarDeclInit VarDeclList2 | e
+void parser::VarDeclList() {
+    VarDeclInit();
+    VarDeclList2();
+}
+
+void parser::VarDeclList2() {
     if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
-        consume_token();
         VarDeclInit();
-    }
-    else {
-        VarDeclInit();
+        VarDeclList2();
     }
 }
 
-// VarDeclInit := VarDeclId
+// VarDeclInit := VarDeclId | VarDeclId '=' SimpleExpr
 void parser::VarDeclInit() {
     VarDeclId();
+
+    if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN) {
+        consume_token();
+
+        SimpleExpr();
+    }
 }
 
 // VarDeclId := Id | Id '[' NumberConstant ']'
+
 void parser::VarDeclId() {
-    VarDeclId();
+    Id();
 
     if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
         consume_token();
@@ -107,9 +160,6 @@ void parser::VarDeclId() {
         else {
             fprintf(stderr, "ERROR: Expected a ']' but got a %s at the end of a variable initialization of array.", peak_next_token().value.c_str());
         }
-    }
-    else {
-        fprintf(stderr, "ERROR: Expected a '[' but got a %s at the end of a variable initialization of array.", peak_next_token().value.c_str());
     }
 }
 
@@ -477,8 +527,21 @@ void parser::ForStmt()
 }
 
 // SimpleExpr := SimpleExpr '||' AndExpr | AndExpr
+// A          :=              a          | B
+
+// A  := B A'
+// A' := a A' | e
+
+// SimpleExpr  := AndExpr SimpleExpr2
+// SimpleExpr2 := SimpleExpr '||' AndExpr | e
+
 void parser::SimpleExpr()
 {
+    AndExpr();
+    SimpleExpr2();
+}
+
+void parser::SimpleExpr2() {
     SimpleExpr();
 
     if (peak_next_token().type == TOKEN_SYMBOL_PIPE)
@@ -504,7 +567,7 @@ void parser::SimpleExpr()
     }
 }
 
-// AndExpr := SimpleExpr '&&' UnaryRelExpr | UnaryRelExpr
+// AndExpr := SimpleExpr2 '&&' UnaryRelExpr | UnaryRelExpr
 void parser::AndExpr()
 {
 	SimpleExpr();
@@ -748,4 +811,8 @@ void parser::Id()
 	}
 
     consume_token();
+}
+
+void parser::e() {
+
 }

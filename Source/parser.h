@@ -16,7 +16,7 @@ public:
     int currentTokenIndex;
 
 public:
-    parser(std::vector<token> tokens) { this->tokens = tokens; currentTokenIndex = 0;}
+    parser(std::vector<token> tokens) { this->tokens = tokens; currentTokenIndex = -1;}
 
 private:
     /**
@@ -133,7 +133,18 @@ public:
     void CharConstant();
 
     void StringConstant();
+
     void Id();
+
+    void DeclList2();
+
+    void VarDeclList2();
+
+    void e();
+
+    bool is_last_character();
+
+    void SimpleExpr2();
 };
 
 #endif //COMS440_PARSER_H

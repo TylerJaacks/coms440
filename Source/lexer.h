@@ -5,6 +5,7 @@
 #ifndef TESTPROJECT_LEXER_H
 #define TESTPROJECT_LEXER_H
 
+#include <cstring>
 #include <string>
 #include <vector>
 
