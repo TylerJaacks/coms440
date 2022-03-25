@@ -1,10 +1,3 @@
-//
-// Created by Tyler Jaacks on 3/6/22.
-//
-
-#ifndef COMS440_PARSER_H
-#define COMS440_PARSER_H
-
 #include <vector>
 
 #include "token.h"
@@ -16,9 +9,14 @@ public:
     int currentTokenIndex;
 
 public:
-    parser(std::vector<token> tokens) { this->tokens = tokens; currentTokenIndex = -1;}
+    parser(std::vector<token> tokens) {
+        this->tokens = tokens;
+        currentTokenIndex = -1;
+    }
 
 private:
+    void error(std::string expectedToken, std::string tokenValue, std::string fileName, int lineNumber);
+
     /**
      * Gets the next token without consuming the current token.
      * @return the next token.
@@ -26,107 +24,67 @@ private:
     token peak_next_token();
 
     /**
-     * Gets the previous token without consuming the previous token.
-     * @return the previous token.
+     * Gets the next n token.
+     * @param n the offset.
+     * @return the nth token.
      */
-    token peak_previous_token();
+    token peak(int n);
+
+    /**
+     * Checks if the next token_type is the same as the excepted.
+     * @param type the expected token_type.
+     * @return if the type matches.
+     */
+    bool match(token_type type);
 
     /**
      * Gets the current token and advance the current token index.
      * @return the current token.
      */
-    token consume_token();
+    token consume();
 
 public:
-    void S();
-
     void Program();
-
-    void DeclList();
 
     void Decl();
 
-    void VarDecl();
+    void DeclList();
 
-    void ScopedVarDecl();
+    void VarDecl();
 
     void VarDeclList();
 
-    void VarDeclInit();
-
     void VarDeclId();
-
-    void Type();
 
     void FuncDecl();
 
-    void Params();
+    void FuncDeclParams();
 
-    void ParamList();
+    void FuncDeclParamList();
 
-    void ParamTypeList();
+    void FuncDeclParam();
 
-    void ParamIdList();
-
-    void ParamId();
+    void Block();
 
     void Stmt();
 
-    void ExprStmt();
-
-	void CompoundStmt();
-
-    void LocalDecls();
-
-	void ReturnStmt();
-
-	void BreakStmt();
-
-	void Expr();
-
     void StmtList();
 
-    void IfStmt();
+    void FuncCall();
 
-	void WhileStmt();
+    void FuncCallParamList();
 
-	void DoWhileStmt();
+    void FuncCallParam();
 
-	void ForStmt();
+    void Expr();
 
-    void SimpleExpr();
+    void Type();
 
-    void AndExpr();
-
-    void UnaryRelExpr();
-
-    void RelExpr();
-
-    void RelOp();
-
-    void SumExpr();
-
-    void SumOp();
-
-    void MultExpr();
-
-    void MultOp();
-
-    void Factor();
-
-    void Mutable();
-
-    void Immutable();
-
-    void Call();
-
-    void Args();
-
-    void ArgsList();
+    void Id();
 
     void Constant();
 
-    void NumberConstant();
+    void IntegerConstant();
 
     void DoubleConstant();
 
@@ -134,17 +92,9 @@ public:
 
     void StringConstant();
 
-    void Id();
+    void LValue();
 
-    void DeclList2();
+    void ExprList();
 
-    void VarDeclList2();
-
-    void e();
-
-    bool is_last_character();
-
-    void SimpleExpr2();
+    bool BinaryOp();
 };
-
-#endif //COMS440_PARSER_H

@@ -199,6 +199,12 @@ void lexer::lex(token &token) {
             currentIndex++;
             break;
 
+        case '~':
+            token.type = TOKEN_SYMBOL_TILDE;
+            token.value = "~";
+            currentIndex++;
+            break;
+
         case '\"':
             /**
              * TODO: Handle Quotes in Quotes.
