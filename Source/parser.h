@@ -1,3 +1,4 @@
+#include <map>
 #include <vector>
 
 #include "token.h"
@@ -5,6 +6,7 @@
 class parser {
 public:
     std::vector<token> tokens;
+    std::map<std::string, int> precedenceMap;
 
     int currentTokenIndex;
 
@@ -12,6 +14,25 @@ public:
     parser(std::vector<token> tokens) {
         this->tokens = tokens;
         currentTokenIndex = -1;
+
+        this->precedenceMap["("] = 12;
+        this->precedenceMap[")"] = 12;
+        this->precedenceMap["["] = 12;
+        this->precedenceMap["]"] = 12;
+        this->precedenceMap["."] = 12;
+
+        this->precedenceMap["!"] = 11;
+        this->precedenceMap["~"] = 11;
+        this->precedenceMap["- (Unary)"] = 11;
+        this->precedenceMap["--"] = 11;
+        this->precedenceMap["Type"] = 11;
+
+        this->precedenceMap["*"] = 10;
+        this->precedenceMap["/"] = 10;
+        this->precedenceMap["%"] = 10;
+
+        this->precedenceMap["+"] = 9;
+        this->precedenceMap["-"] = 9;
     }
 
 private:
@@ -70,13 +91,21 @@ public:
 
     void StmtList();
 
-    void FuncCall();
-
-    void FuncCallParamList();
-
-    void FuncCallParam();
-
     void Expr();
+
+    void LValue();
+
+    void ExprList();
+
+    bool UnaryOp();
+
+    bool BinaryOp();
+
+    bool AssignOp();
+
+    void ParseExpression();
+
+    void ParseExpression2(token token, int minPrecedence);
 
     void Type();
 
@@ -92,9 +121,5 @@ public:
 
     void StringConstant();
 
-    void LValue();
-
-    void ExprList();
-
-    bool BinaryOp();
+    void BinOp();
 };

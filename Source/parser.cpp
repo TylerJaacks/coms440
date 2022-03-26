@@ -48,6 +48,7 @@ void parser::Decl() {
     if (peak_next_token().type == TOKEN_EOF)
         return;
 
+    // Check to see if our next token is function declaration or variable declaration.
     if (peak(3).type == TOKEN_SYMBOL_LEFT_PAREN) {
         FuncDecl();
     } else {
@@ -64,16 +65,18 @@ void parser::DeclList() {
     DeclList();
 }
 
-// VarDecl := Type VarDeclList ';' | Type VarDeclList '=' SimpleExpr ';'
+// VarDecl := Type VarDeclList ';' | Type VarDeclList '=' Expr ';'
 void parser::VarDecl() {
     Type();
     VarDeclList();
 
+    // Check to see if this is a variable declaration with or without assignment.
     if (match(TOKEN_SYMBOL_EQUAL_SIGN)) {
         consume();
 
         Expr();
 
+        // ERROR: If we don't terminate variable declaration with ';'.
         if (match(TOKEN_SYMBOL_SEMICOLON)) {
             consume();
             return;
@@ -81,9 +84,12 @@ void parser::VarDecl() {
         else {
             error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
         }
-    } else if (match(TOKEN_SYMBOL_SEMICOLON)) {
+    }
+    else if (match(TOKEN_SYMBOL_SEMICOLON)) {
         consume();
-    } else {
+    }
+    // ERROR: If we don't terminate variable declaration with ';'.
+    else {
         error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
     }
 }
@@ -103,11 +109,13 @@ void parser::VarDeclList() {
 void parser::VarDeclId() {
     Id();
 
+    // Check to see if we have an array or not.
     if (match(TOKEN_SYMBOL_LEFT_BRACKET)) {
         consume();
 
         IntegerConstant();
 
+        // ERROR: If we have seen a left bracket then we need it to be closed with a right one/
         if (!match(TOKEN_SYMBOL_RIGHT_BRACKET)) {
             error("]", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
                   peak_next_token().lineNumber);
@@ -120,6 +128,7 @@ void parser::FuncDecl() {
     Type();
     Id();
 
+    // ERROR: If we don't close out the function declaration with a closing parenthesis.
     if (!match(TOKEN_SYMBOL_LEFT_PAREN)) {
         error("(", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
     }
@@ -181,47 +190,55 @@ void parser::Block() {
         if (match(TOKEN_SYMBOL_RIGHT_BRACE)) {
             consume();
         } else {
+            // ERROR: If we don't close the code block with a closing curly brace.
             error("}", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
                   peak_next_token().lineNumber);
         }
     } else {
+        // ERROR: If we don't start the block with an opening curly brace.
         error("{", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
     }
 }
 
 // Stmt := e | VarDecl | FuncCall | IfStmt | ElseStmt | ElseIfStmt | ForStmt | WhileStmt | DoWhileStmt | ReturnStmt | BreakStmt | AssignStmt
 void parser::Stmt() {
-    // TODO: add other types
-    if (peak_next_token().type == TOKEN_TYPE_INTEGER) {
+    if (peak_next_token().type == TOKEN_TYPE_INTEGER ||
+            peak_next_token().type == TOKEN_TYPE_DOUBLE ||
+            peak_next_token().type == TOKEN_TYPE_CHAR) {
         VarDecl();
-    } else if (peak_next_token().type == TOKEN_IDENTIFIER) {
-        FuncCall();
-    } else {
-        error("<Stmt>", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
+    }
+    else {
+        Expr();
+
+        if (match(TOKEN_SYMBOL_SEMICOLON)) {
+            consume();
+            return;
+        }
+        else {
+            error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
+        }
     }
 }
 
 // Expr :=
-//  Literal |
-//  Id '(' ExprList ')' |
+//  ✅ Literal |
+//  ✅ Id '(' ExprList ')' |
 //  UnaryOp Expr |
-
-//  LValue |
-//  LValue AssignOperator Expr |
-//  LValue '--' |
-//  LValue '++' |
-
-
+//  ✅ LValue |
+//  ✅ LValue AssignOperator Expr |
+//  ✅ LValue '--' |
+//  ✅ LValue '++' |
 //  Expr BinaryOp Expr
 //  Expr '?' Expr ':' Expr
-
-//  '(' Type ')' Expr
-//  '(' Expr ')'
-
+//  ✅ '(' Type ')' Expr
+//  ✅ '(' Expr ')'
 void parser::Expr() {
-    // Literals
+    // Make sure we aren't preforming a function call instead.
     if (peak(2).type != TOKEN_SYMBOL_LEFT_PAREN) {
-        if (peak_next_token().type == TOKEN_LITERAL_NUMBER && peak(2).type != TOKEN_SYMBOL_LEFT_PAREN) {
+
+        if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
+            ParseExpression();
+
             consume();
 
             return;
@@ -257,22 +274,31 @@ void parser::Expr() {
                 return;
             }
         }
+        else {
+            LValue();
+
+            if (AssignOp()) {
+                Expr();
+
+                return;
+            }
+
+            if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT) {
+                consume();
+
+                return;
+            }
+
+            if (peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+                consume();
+
+                return;
+            }
+        }
     }
 
-    // Unary Operators
-    if (peak_next_token().type == TOKEN_SYMBOL_EXCLAMATION_MARK) {
-        Expr();
-    }
-    else if (peak_next_token().type == TOKEN_SYMBOL_MINUS_SIGN) {
-        Expr();
-    }
-    else if (peak_next_token().type == TOKEN_SYMBOL_TILDE) {
-        Expr();
-    }
+    bool has_seen_type;
 
-    bool has_seen_type = false;
-
-    // Casting
     if (match(TOKEN_SYMBOL_LEFT_PAREN)) {
         consume();
 
@@ -317,27 +343,77 @@ void parser::Expr() {
 
         return;
     }
-
-    Expr();
-
-    if (BinaryOp()) {
-        Expr();
-    }
 }
 
-bool parser::BinaryOp()
-{
-    if (peak_next_token().type == TOKEN_SYMBOL_PIPE) {
+// TODO: Finish this.
+bool parser::UnaryOp() {
+    if (match(TOKEN_SYMBOL_EXCLAMATION_MARK) && peak(2).type != TOKEN_SYMBOL_EQUAL_SIGN) {
         consume();
 
-        if (peak_next_token().type == TOKEN_SYMBOL_PIPE) {
+        return true;
+    }
+    else if (match(TOKEN_SYMBOL_MINUS_SIGN)) {
+        if (peak(2).type != TOKEN_SYMBOL_EQUAL_SIGN || peak(2).type != TOKEN_SYMBOL_MINUS_SIGN) {
             consume();
 
-
+            return true;
         }
+
+        return false;
     }
+    else if (match(TOKEN_SYMBOL_TILDE)) {
+        consume();
+
+        return true;
+    }
+
+    return false;
 }
 
+// TODO: Finish this.
+bool parser::BinaryOp()
+{
+
+}
+
+// AssignOp :=
+bool parser::AssignOp() {
+    if (match(TOKEN_SYMBOL_PLUS_ASSIGNMENT)) {
+        consume();
+    }
+    else if (match(TOKEN_SYMBOL_MINUS_ASSIGNMENT)) {
+        consume();
+    }
+    else if (match(TOKEN_SYMBOL_MULT_ASSIGNMENT)) {
+        consume();
+    }
+    else if (match(TOKEN_SYMBOL_DIVIDE_ASSIGNMENT)) {
+        consume();
+    }
+    else if (match(TOKEN_SYMBOL_MODULO_ASSIGNMENT)) {
+        consume();
+    }
+
+    return false;
+}
+
+void parser::ParseExpression() {
+    token lhs = peak_next_token();
+    consume();
+
+    ParseExpression2(lhs, 0);
+}
+
+void parser::ParseExpression2(token lhs, int minPrecedence) {
+    token lookahead = peak_next_token();
+    int lookaheadPrecedence = precedenceMap[lookahead.value];
+
+    while (lookaheadPrecedence != NULL && lookaheadPrecedence >= minPrecedence) {
+        token op = peak_next_token();
+
+        consume();
+    }
+}
 
 // ExprList := Expr | Expr ',' ExprList
 void parser::ExprList() {
@@ -356,9 +432,8 @@ void parser::ExprList() {
     return;
 }
 
+// LValue := Id | Id '[' Expr ']'
 void parser::LValue() {
-    Id();
-
     if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
         consume();
 
@@ -372,6 +447,7 @@ void parser::LValue() {
     return;
 }
 
+// StmtList :=
 void parser::StmtList() {
     if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACE) {
         return;
@@ -379,51 +455,6 @@ void parser::StmtList() {
 
     Stmt();
     StmtList();
-}
-
-// FuncCall := Id '(' FuncCallParamList ')' ';'
-void parser::FuncCall() {
-    Id();
-
-    if (!match(TOKEN_SYMBOL_LEFT_PAREN)) {
-        error("(", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
-    }
-
-    consume();
-
-    FuncCallParamList();
-
-    if (!match(TOKEN_SYMBOL_RIGHT_PAREN)) {
-        error(")", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
-    }
-
-    consume();
-
-    if (!match(TOKEN_SYMBOL_SEMICOLON)) {
-        error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
-    }
-
-    consume();
-}
-
-// FuncCallParamList := e | FuncCallParam | FuncCallParam ',' FuncCallParamList
-void parser::FuncCallParamList() {
-    FuncCallParam();
-
-    if (match(TOKEN_SYMBOL_COMMA)) {
-        consume();
-
-        FuncCallParamList();
-    }
-}
-
-// FuncCallParam := Id | SimpleExpr
-void parser::FuncCallParam() {
-    if (match(TOKEN_IDENTIFIER)) {
-        Id();
-    } else {
-        //SimpleExpr();
-    }
 }
 
 // Type := INTEGER | DOUBLE | CHAR | VOID

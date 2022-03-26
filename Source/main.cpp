@@ -100,13 +100,12 @@ void handle_arguments(struct arguments *arguments) {
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
-                for (int i = 0; i < tokens.size(); i++) {
+                for (int i = 0; i < tokens.size() - 1; i++) {
                     fprintf(stdout, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(), tokens[i].lineNumber, tokens[i].type, tokens[i].value.c_str());
                 }
 
                 exit(SUCCESS);
             }
-            // TODO: Not Working
             else if (arguments->output_path != "a.out") {
                 lexer program_lexer = lexer(arguments->input_path, buffer);
 
@@ -114,7 +113,7 @@ void handle_arguments(struct arguments *arguments) {
 
                 FILE *f = fopen(arguments->output_path.c_str(), "w+");
 
-                for (int i = 0; i < tokens.size(); i++) {
+                for (int i = 0; i < tokens.size() - 1; i++) {
                     fprintf(f, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(), tokens[i].lineNumber, tokens[i].type, tokens[i].value.c_str());
                 }
 
@@ -125,19 +124,48 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '2') {
-        std::string testProgram = "int i = 1 + 3";
+        char *buffer = 0;
+        long length;
 
-        lexer lexer("HelloWorld.c", testProgram);
+        FILE *f = fopen(arguments->input_path.c_str(), "rb");
 
-        std::vector<token> tokens = lexer.getTokens();
+        if (f) {
+            fseek(f, 0, SEEK_END);
+            length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            buffer = (char*) malloc(length);
+            if (buffer) {
+                fread(buffer, 1, length, f);
+            }
+            fclose(f);
+        }
 
-        parser parser(tokens);
+        if (buffer) {
+            if (arguments->output_path == "a.out") {
+                lexer program_lexer = lexer(arguments->input_path, buffer);
 
-        parser.Program();
+                std::vector<token> tokens = program_lexer.getTokens();
 
-        fprintf(stdout, "The program's syntax is valid.");
+                parser program_parser(tokens);
 
-        exit(SUCCESS);
+                program_parser.Program();
+
+                exit(SUCCESS);
+            }
+            else if (arguments->output_path != "a.out") {
+                lexer program_lexer = lexer(arguments->input_path, buffer);
+
+                std::vector<token> tokens = program_lexer.getTokens();
+
+                FILE *f = fopen(arguments->output_path.c_str(), "w+");
+
+                parser program_parser(tokens);
+
+                program_parser.Program();
+
+                exit(SUCCESS);
+            }
+        }
     }
     else if (arguments->mode == '3') {
 

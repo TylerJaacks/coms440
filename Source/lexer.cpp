@@ -118,59 +118,143 @@ void lexer::lex(token &token) {
             break;
 
         case '+':
-            token.type = TOKEN_SYMBOL_PLUS_SIGN;
-            token.value = "+";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '+') {
+                token.type = TOKEN_SYMBOL_INCREMENT;
+                token.value = "++";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_PLUS_ASSIGNMENT;
+                token.value = "+=";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_PLUS_SIGN;
+                token.value = "+";
+                currentIndex++;
+                break;
+            }
         case '-':
-            token.type = TOKEN_SYMBOL_MINUS_SIGN;
-            token.value = "-";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '+') {
+                token.type = TOKEN_SYMBOL_DECREMENT;
+                token.value = "--";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_MINUS_ASSIGNMENT;
+                token.value = "-=";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_MINUS_SIGN;
+                token.value = "-";
+                currentIndex++;
+                break;
+            }
         case '*':
-            token.type = TOKEN_SYMBOL_ASTERISK;
-            token.value = "*";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_MULT_ASSIGNMENT;
+                token.value = "*=";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_ASTERISK;
+                token.value = "*";
+                currentIndex++;
+                break;
+            }
         case '/':
-            token.type = TOKEN_SYMBOL_FORWARD_SLASH;
-            token.value = "/";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_DIVIDE_ASSIGNMENT;
+                token.value = "/=";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_FORWARD_SLASH;
+                token.value = "/";
+                currentIndex++;
+                break;
+            }
         case '%':
-            token.type = TOKEN_SYMBOL_PERCENT_SIGN;
-            token.value = "%";
-            currentIndex++;
-            break;
-
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_MODULO_ASSIGNMENT;
+                token.value = "%=";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_PERCENT_SIGN;
+                token.value = "%";
+                currentIndex++;
+                break;
+            }
         case '!':
-            token.type = TOKEN_SYMBOL_EXCLAMATION_MARK;
-            token.value = "!";
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_CMP_NOT_EQUAL;
+                token.value = "!=";
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_EXCLAMATION_MARK;
+                token.value = "!";
+                currentIndex++;
+                break;
+            }
+        case '?':
+            token.type = TOKEN_SYMBOL_QUESTION_MARK;
+            token.value = "?";
             currentIndex++;
             break;
         case '<':
-            token.type = TOKEN_SYMBOL_LESS_THAN;
-            token.value = "<";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_CMP_LESS_THAN_EQUAL;
+                token.value = "<=";
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_CMP_LESS_THAN;
+                token.value = "<";
+                currentIndex++;
+                break;
+            }
         case '>':
-            token.type = TOKEN_SYMBOL_GREATER_THAN;
-            token.value = ">";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_CMP_GREATER_THAN_EQUAL;
+                token.value = ">=";
+                currentIndex++;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_CMP_GREATER_THAN;
+                token.value = ">";
+                currentIndex++;
+                break;
+            }
         case '=':
-            token.type = TOKEN_SYMBOL_EQUAL_SIGN;
-            token.value = "=";
-            currentIndex++;
-            break;
+            if (characters[currentIndex + 1] != '=') {
+                token.type = TOKEN_SYMBOL_EQUAL_SIGN;
+                token.value = "=";
+                currentIndex++;
+                break;
+            }
         case ':':
             token.type = TOKEN_SYMBOL_COLON;
             token.value = ":";
-            currentIndex++;
-            break;
-        case '\\':
-            token.type = TOKEN_BACKWARD_SLASH;
-            token.value = "\\";
             currentIndex++;
             break;
         case ';':
