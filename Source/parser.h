@@ -23,8 +23,10 @@ public:
 
         this->precedenceMap["!"] = 11;
         this->precedenceMap["~"] = 11;
-        this->precedenceMap["- (Unary)"] = 11;
+        this->precedenceMap["-"] = 11; // - (Unary)
         this->precedenceMap["--"] = 11;
+
+        // Type
         this->precedenceMap["Type"] = 11;
 
         this->precedenceMap["*"] = 10;
@@ -33,6 +35,34 @@ public:
 
         this->precedenceMap["+"] = 9;
         this->precedenceMap["-"] = 9;
+
+        this->precedenceMap["<"] = 8;
+        this->precedenceMap["<="] = 8;
+        this->precedenceMap[">"] = 8;
+        this->precedenceMap[">="] = 8;
+
+        this->precedenceMap["=="] = 7;
+        this->precedenceMap["!="] = 7;
+
+        this->precedenceMap["&"] = 6;
+
+        this->precedenceMap["|"] = 5;
+
+        this->precedenceMap["&&"] = 4;
+
+        this->precedenceMap["||"] = 3;
+
+        // ?:
+        this->precedenceMap["?"] = 2;
+        this->precedenceMap[":"] = 2;
+
+        this->precedenceMap["+="] = 1;
+        this->precedenceMap["-="] = 1;
+        this->precedenceMap["*="] = 1;
+        this->precedenceMap["/="] = 1;
+        this->precedenceMap["%="] = 1;
+
+        this->precedenceMap[","] = 0;
     }
 
 private:

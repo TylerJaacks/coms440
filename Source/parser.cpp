@@ -405,14 +405,7 @@ void parser::ParseExpression() {
 }
 
 void parser::ParseExpression2(token lhs, int minPrecedence) {
-    token lookahead = peak_next_token();
-    int lookaheadPrecedence = precedenceMap[lookahead.value];
-
-    while (lookaheadPrecedence != NULL && lookaheadPrecedence >= minPrecedence) {
-        token op = peak_next_token();
-
-        consume();
-    }
+    
 }
 
 // ExprList := Expr | Expr ',' ExprList
