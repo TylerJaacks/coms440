@@ -1,0 +1,518 @@
+[rdjiles@pyrite-n1 Source]$ ./Check_1.sh "./mycc" -d lineno*.c
+Running tests using compiler:
+  | My bare-bones C compiler (for COM 440/540)
+  |     Written by Tyler Jaacks (tjaacks@iastate.edu)
+  |     Version 2.0
+  |     28 January, 2022
+
+----------------------------------------------------------------------
+lineno1.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,7c1,7
+        | < File lineno1.c Line     1 Token 303 Text 1
+        | < File lineno1.c Line     3 Token 303 Text 3
+        | < File lineno1.c Line     3 Token 306 Text three
+        | < File lineno1.c Line     3 Token 304 Text 3.0
+        | < File lineno1.c Line     4 Token 303 Text 4
+        | < File lineno1.c Line     5 Token 303 Text 5
+        | < File lineno1.c Line    10 Token 303 Text 10
+        | ---
+        | > File lineno1.c Line 0 Token 1022 Text 1
+        | > File lineno1.c Line 2 Token 1022 Text 3
+        | > File lineno1.c Line 2 Token 1020 Text three
+        | > File lineno1.c Line 2 Token 1023 Text 3.0
+        | > File lineno1.c Line 3 Token 1022 Text 4
+        | > File lineno1.c Line 4 Token 1022 Text 5
+        | > File lineno1.c Line 9 Token 1022 Text 10
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+lineno2.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,12
+        | < File lineno2.c Line     1 Token 303 Text 1
+        | < File lineno2.c Line    10 Token 303 Text 10
+        | < File lineno2.c Line    15 Token 303 Text 15
+        | < File lineno2.c Line    22 Token 303 Text 22
+        | < File lineno2.c Line    33 Token 303 Text 33
+        | ---
+        | > File lineno2.c Line 0 Token 1022 Text 1
+        | > File lineno2.c Line 9 Token 1022 Text 10
+        | > File lineno2.c Line 14 Token 1022 Text 15
+        | > File lineno2.c Line 16 Token 47 Text /
+        | > File lineno2.c Line 16 Token 47 Text /
+        | > File lineno2.c Line 16 Token 47 Text /
+        | > File lineno2.c Line 16 Token 47 Text /
+        | > File lineno2.c Line 17 Token 1022 Text 22
+        | > File lineno2.c Line 19 Token 47 Text /
+        | > File lineno2.c Line 19 Token 42 Text *
+        | > File lineno2.c Line 26 Token 42 Text *
+        | > File lineno2.c Line 27 Token 1022 Text 33
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+[rdjiles@pyrite-n1 Source]$ ./Check_1.sh "./mycc" -d keywords*.c
+Running tests using compiler:
+  | My bare-bones C compiler (for COM 440/540)
+  |     Written by Tyler Jaacks (tjaacks@iastate.edu)
+  |     Version 2.0
+  |     28 January, 2022
+
+----------------------------------------------------------------------
+keywords_01.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,5
+        | < File keywords_01.c Line     1 Token 306 Text c
+        | < File keywords_01.c Line     2 Token 306 Text co
+        | < File keywords_01.c Line     3 Token 306 Text con
+        | < File keywords_01.c Line     4 Token 306 Text cons
+        | < File keywords_01.c Line     5 Token 401 Text const
+        | ---
+        | > File keywords_01.c Line 0 Token 1020 Text c
+        | > File keywords_01.c Line 1 Token 1020 Text co
+        | > File keywords_01.c Line 2 Token 1020 Text con
+        | > File keywords_01.c Line 3 Token 1020 Text cons
+        | > File keywords_01.c Line 4 Token 401 Text const
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_02.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,6c1,6
+        | < File keywords_02.c Line     1 Token 402 Text struct
+        | < File keywords_02.c Line     2 Token 306 Text truct
+        | < File keywords_02.c Line     3 Token 306 Text ruct
+        | < File keywords_02.c Line     4 Token 306 Text uct
+        | < File keywords_02.c Line     5 Token 306 Text ct
+        | < File keywords_02.c Line     6 Token 306 Text t
+        | ---
+        | > File keywords_02.c Line 0 Token 402 Text struct
+        | > File keywords_02.c Line 1 Token 1020 Text truct
+        | > File keywords_02.c Line 2 Token 1020 Text ruct
+        | > File keywords_02.c Line 3 Token 1020 Text uct
+        | > File keywords_02.c Line 4 Token 1020 Text ct
+        | > File keywords_02.c Line 5 Token 1020 Text t
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_03.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,4c1,4
+        | < File keywords_03.c Line     2 Token 306 Text fort
+        | < File keywords_03.c Line     3 Token 306 Text for3
+        | < File keywords_03.c Line     4 Token 403 Text for
+        | < File keywords_03.c Line     5 Token 306 Text vfor
+        | ---
+        | > File keywords_03.c Line 1 Token 1020 Text fort
+        | > File keywords_03.c Line 2 Token 1020 Text for3
+        | > File keywords_03.c Line 3 Token 403 Text for
+        | > File keywords_03.c Line 4 Token 1020 Text vfor
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_04.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 0a1
+        | > File keywords_04.c Line 0 Token 404 Text while
+        | 1a3
+        | > File keywords_04.c Line 1 Token 40 Text (
+        | 4,5d5
+        | < File keywords_04.c Line     3 Token 404 Text while
+        | < File keywords_04.c Line     3 Token  40 Text (
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_05.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,5
+        | < File keywords_05.c Line     1 Token 306 Text dood
+        | < File keywords_05.c Line     2 Token 306 Text oddo
+        | < File keywords_05.c Line     3 Token 306 Text do_
+        | < File keywords_05.c Line     4 Token 306 Text _do
+        | < File keywords_05.c Line     5 Token 405 Text do
+        | ---
+        | > File keywords_05.c Line 0 Token 1020 Text dood
+        | > File keywords_05.c Line 1 Token 1020 Text oddo
+        | > File keywords_05.c Line 2 Token 1020 Text do_
+        | > File keywords_05.c Line 3 Token 1020 Text _do
+        | > File keywords_05.c Line 4 Token 405 Text do
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_06.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,5
+        | < File keywords_06.c Line     2 Token 406 Text if
+        | < File keywords_06.c Line     4 Token 407 Text else
+        | < File keywords_06.c Line     6 Token 306 Text ifif
+        | < File keywords_06.c Line     7 Token 306 Text ifelse
+        | < File keywords_06.c Line     8 Token 306 Text elseif
+        | ---
+        | > File keywords_06.c Line 1 Token 406 Text if
+        | > File keywords_06.c Line 3 Token 407 Text else
+        | > File keywords_06.c Line 5 Token 1020 Text ifif
+        | > File keywords_06.c Line 6 Token 1020 Text ifelse
+        | > File keywords_06.c Line 7 Token 1020 Text elseif
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_07.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1c1
+        | < File keywords_07.c Line     2 Token 408 Text break
+        | ---
+        | > File keywords_07.c Line 1 Token 408 Text break
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_08.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,3c1,3
+        | < File keywords_08.c Line     1 Token 306 Text con
+        | < File keywords_08.c Line     2 Token 409 Text continue
+        | < File keywords_08.c Line     3 Token 306 Text constinue
+        | ---
+        | > File keywords_08.c Line 0 Token 1020 Text con
+        | > File keywords_08.c Line 1 Token 409 Text continue
+        | > File keywords_08.c Line 2 Token 1020 Text constinue
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_09.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1c1
+        | < File keywords_09.c Line     4 Token 410 Text return
+        | ---
+        | > File keywords_09.c Line 3 Token 410 Text return
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_10.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,6c1,6
+        | < File keywords_10.c Line     1 Token 412 Text case
+        | < File keywords_10.c Line     2 Token 413 Text default
+        | < File keywords_10.c Line     3 Token 411 Text switch
+        | < File keywords_10.c Line     5 Token 306 Text casecase
+        | < File keywords_10.c Line     6 Token 306 Text defaultcase
+        | < File keywords_10.c Line     7 Token 306 Text switchdefaultcase
+        | ---
+        | > File keywords_10.c Line 0 Token 412 Text case
+        | > File keywords_10.c Line 1 Token 413 Text default
+        | > File keywords_10.c Line 2 Token 411 Text switch
+        | > File keywords_10.c Line 4 Token 1020 Text casecase
+        | > File keywords_10.c Line 5 Token 1020 Text defaultcase
+        | > File keywords_10.c Line 6 Token 1020 Text switchdefaultcase
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_11.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,3c1,3
+        | < File keywords_11.c Line     1 Token 301 Text void
+        | < File keywords_11.c Line     2 Token 306 Text _void
+        | < File keywords_11.c Line     3 Token 306 Text void_
+        | ---
+        | > File keywords_11.c Line 0 Token 1017 Text void
+        | > File keywords_11.c Line 1 Token 1020 Text _void
+        | > File keywords_11.c Line 2 Token 1020 Text void_
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_12.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1c1,4
+        | < File keywords_12.c Line     1 Token 301 Text char
+        | ---
+        | > File keywords_12.c Line 0 Token 1014 Text char
+        | > File keywords_12.c Line 1 Token 401 Text const
+        | > File keywords_12.c Line 1 Token 1014 Text char
+        | > File keywords_12.c Line 2 Token 1014 Text char
+        | 3,5d5
+        | < File keywords_12.c Line     2 Token 301 Text char
+        | < File keywords_12.c Line     3 Token 301 Text char
+        | < File keywords_12.c Line     3 Token 401 Text const
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_13.c in mode 1
+    Timeout exceeded (30 seconds), terminating    Basic Implementation Comparison: Output  is  different
+        | 1,4d0
+        | < File keywords_13.c Line     1 Token 301 Text int
+        | < File keywords_13.c Line     2 Token 306 Text int_x
+        | < File keywords_13.c Line     3 Token 306 Text intab
+        | < File keywords_13.c Line     4 Token 306 Text integer
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_14.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,5
+        | < File keywords_14.c Line     1 Token 301 Text float
+        | < File keywords_14.c Line     2 Token 306 Text floaty
+        | < File keywords_14.c Line     3 Token 301 Text float
+        | < File keywords_14.c Line     3 Token 306 Text y
+        | < File keywords_14.c Line     4 Token 306 Text ifloat
+        | ---
+        | > File keywords_14.c Line 0 Token 1013 Text float
+        | > File keywords_14.c Line 1 Token 1020 Text floaty
+        | > File keywords_14.c Line 2 Token 1013 Text float
+        | > File keywords_14.c Line 2 Token 1020 Text y
+        | > File keywords_14.c Line 3 Token 1020 Text ifloat
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+keywords_15.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,13c1,13
+        | < File keywords_15.c Line     1 Token 306 Text tricky_idents
+        | < File keywords_15.c Line     2 Token 306 Text _
+        | < File keywords_15.c Line     3 Token 306 Text __
+        | < File keywords_15.c Line     4 Token 306 Text ___
+        | < File keywords_15.c Line     5 Token 306 Text _3
+        | < File keywords_15.c Line     6 Token 306 Text i
+        | < File keywords_15.c Line     7 Token 306 Text i2
+        | < File keywords_15.c Line     8 Token 306 Text i3
+        | < File keywords_15.c Line     9 Token 306 Text i12312
+        | < File keywords_15.c Line    10 Token 306 Text TrickyIdents
+        | < File keywords_15.c Line    11 Token 306 Text TRICKY
+        | < File keywords_15.c Line    11 Token  45 Text -
+        | < File keywords_15.c Line    11 Token 306 Text IDENTS
+        | ---
+        | > File keywords_15.c Line 0 Token 1020 Text tricky_idents
+        | > File keywords_15.c Line 1 Token 1020 Text _
+        | > File keywords_15.c Line 2 Token 1020 Text __
+        | > File keywords_15.c Line 3 Token 1020 Text ___
+        | > File keywords_15.c Line 4 Token 1020 Text _3
+        | > File keywords_15.c Line 5 Token 1020 Text i
+        | > File keywords_15.c Line 6 Token 1020 Text i2
+        | > File keywords_15.c Line 7 Token 1020 Text i3
+        | > File keywords_15.c Line 8 Token 1020 Text i12312
+        | > File keywords_15.c Line 9 Token 1020 Text TrickyIdents
+        | > File keywords_15.c Line 10 Token 1020 Text TRICKY
+        | > File keywords_15.c Line 10 Token 45 Text -
+        | > File keywords_15.c Line 10 Token 1020 Text IDENTS
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+[rdjiles@pyrite-n1 Source]$ ./Check_1.sh "./mycc" -d literals*.c
+Running tests using compiler:
+  | My bare-bones C compiler (for COM 440/540)
+  |     Written by Tyler Jaacks (tjaacks@iastate.edu)
+  |     Version 2.0
+  |     28 January, 2022
+
+----------------------------------------------------------------------
+literals_01.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1c1
+        | < File literals_01.c Line     6 Token 303 Text 6
+        | ---
+        | > File literals_01.c Line 5 Token 1022 Text 6
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_02.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,10c1,10
+        | < File literals_02.c Line     1 Token 303 Text 1
+        | < File literals_02.c Line     1 Token 303 Text 2
+        | < File literals_02.c Line     1 Token 303 Text 3
+        | < File literals_02.c Line     1 Token 303 Text 4
+        | < File literals_02.c Line     2 Token 303 Text 56789
+        | < File literals_02.c Line     3 Token 303 Text 123
+        | < File literals_02.c Line     4 Token 303 Text 123456
+        | < File literals_02.c Line     5 Token 303 Text 1234567890
+        | < File literals_02.c Line     6 Token 303 Text 123456789012345
+        | < File literals_02.c Line     7 Token 303 Text 12345678901234567890
+        | ---
+        | > File literals_02.c Line 0 Token 1022 Text 1
+        | > File literals_02.c Line 0 Token 1022 Text 2
+        | > File literals_02.c Line 0 Token 1022 Text 3
+        | > File literals_02.c Line 0 Token 1022 Text 4
+        | > File literals_02.c Line 1 Token 1022 Text 56789
+        | > File literals_02.c Line 2 Token 1022 Text 123
+        | > File literals_02.c Line 3 Token 1022 Text 123456
+        | > File literals_02.c Line 4 Token 1022 Text 1234567890
+        | > File literals_02.c Line 5 Token 1022 Text 123456789012345
+        | > File literals_02.c Line 6 Token 1022 Text 12345678901234567890
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_03.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,5c1,5
+        | < File literals_03.c Line     1 Token 303 Text 2
+        | < File literals_03.c Line     2 Token  45 Text -
+        | < File literals_03.c Line     2 Token 303 Text 3
+        | < File literals_03.c Line     3 Token  43 Text +
+        | < File literals_03.c Line     3 Token 303 Text 4
+        | ---
+        | > File literals_03.c Line 0 Token 1022 Text 2
+        | > File literals_03.c Line 1 Token 45 Text -
+        | > File literals_03.c Line 1 Token 1022 Text 3
+        | > File literals_03.c Line 2 Token 43 Text +
+        | > File literals_03.c Line 2 Token 1022 Text 4
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_04.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,3c1,3
+        | < File literals_04.c Line     1 Token 304 Text 1.2
+        | < File literals_04.c Line     2 Token 304 Text 3.45678
+        | < File literals_04.c Line     3 Token 304 Text 910.1112
+        | ---
+        | > File literals_04.c Line 0 Token 1023 Text 1.2
+        | > File literals_04.c Line 1 Token 1023 Text 3.45678
+        | > File literals_04.c Line 2 Token 1023 Text 910.1112
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_05.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,3c1
+        | < File literals_05.c Line     1 Token 304 Text 123.456
+        | < File literals_05.c Line     1 Token  46 Text .
+        | < File literals_05.c Line     1 Token 303 Text 78
+        | ---
+        | > File literals_05.c Line 0 Token 1023 Text 123.456.78
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_06.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,4c1,4
+        | < File literals_06.c Line     1 Token  45 Text -
+        | < File literals_06.c Line     1 Token 304 Text 2.7
+        | < File literals_06.c Line     2 Token  43 Text +
+        | < File literals_06.c Line     2 Token 304 Text 3.4
+        | ---
+        | > File literals_06.c Line 0 Token 45 Text -
+        | > File literals_06.c Line 0 Token 1023 Text 2.7
+        | > File literals_06.c Line 1 Token 43 Text +
+        | > File literals_06.c Line 1 Token 1023 Text 3.4
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_07.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,3c1,3
+        | < File literals_07.c Line     1 Token 305 Text "a"
+        | < File literals_07.c Line     2 Token 305 Text "bcdef"
+        | < File literals_07.c Line     3 Token 305 Text "AbCdE124"
+        | ---
+        | > File literals_07.c Line 0 Token 1021 Text a
+        | > File literals_07.c Line 1 Token 1021 Text bcdef
+        | > File literals_07.c Line 2 Token 1021 Text AbCdE124
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_08.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,4c1,4
+        | < File literals_08.c Line     1 Token 305 Text "hello world"
+        | < File literals_08.c Line     2 Token 305 Text "this is a string"
+        | < File literals_08.c Line     3 Token 305 Text "          "
+        | < File literals_08.c Line     4 Token 305 Text "3+4=7; right?"
+        | ---
+        | > File literals_08.c Line 0 Token 1021 Text hello world
+        | > File literals_08.c Line 1 Token 1021 Text this is a string
+        | > File literals_08.c Line 2 Token 1021 Text
+        | > File literals_08.c Line 3 Token 1021 Text 3+4=7; right?
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_09.c in mode 1
+    Basic Implementation Comparison: First error different
+        Expected first error:
+        ---------------------------------------------------------
+        | Lexer error in file literals_09.c line 7
+        |       End of file while reading string literal.
+        ---------------------------------------------------------
+
+        Given first error:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+        Complete error stream given:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+    Extra Credit Implementation Comparison: First error different
+        Expected first error:
+        ---------------------------------------------------------
+        | Lexer error in file literals_09.c line 7
+        |       Unclosed string literal
+        ---------------------------------------------------------
+
+        Given first error:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+        Complete error stream given:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_10.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,4c1,4
+        | < File literals_10.c Line     1 Token 302 Text 'a'
+        | < File literals_10.c Line     2 Token 302 Text 'A'
+        | < File literals_10.c Line     3 Token 302 Text 'x'
+        | < File literals_10.c Line     4 Token 302 Text 'Y'
+        | ---
+        | > File literals_10.c Line 0 Token 1024 Text a
+        | > File literals_10.c Line 1 Token 1024 Text A
+        | > File literals_10.c Line 2 Token 1024 Text x
+        | > File literals_10.c Line 3 Token 1024 Text Y
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_11.c in mode 1
+    Basic Implementation Comparison: Output  is  different
+        | 1,8c1,8
+        | < File literals_11.c Line     1 Token 302 Text ' '
+        | < File literals_11.c Line     2 Token 302 Text 'a'
+        | < File literals_11.c Line     3 Token 302 Text '3'
+        | < File literals_11.c Line     4 Token 302 Text 'r'
+        | < File literals_11.c Line     5 Token 302 Text ';'
+        | < File literals_11.c Line     6 Token 302 Text '_'
+        | < File literals_11.c Line     7 Token 302 Text '*'
+        | < File literals_11.c Line     8 Token 302 Text '&'
+        | ---
+        | > File literals_11.c Line 0 Token 1024 Text
+        | > File literals_11.c Line 1 Token 1024 Text a
+        | > File literals_11.c Line 2 Token 1024 Text 3
+        | > File literals_11.c Line 3 Token 1024 Text r
+        | > File literals_11.c Line 4 Token 1024 Text ;
+        | > File literals_11.c Line 5 Token 1024 Text _
+        | > File literals_11.c Line 6 Token 1024 Text *
+        | > File literals_11.c Line 7 Token 1024 Text &
+        Complete error stream given (should be empty):
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+literals_12.c in mode 1
+    Basic Implementation Comparison: First error different
+        Expected first error:
+        ---------------------------------------------------------
+        | Lexer error in file literals_12.c line 2
+        |       Expected closing quote for character literal.
+        ---------------------------------------------------------
+
+        Given first error:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+        Complete error stream given:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+    Extra Credit Implementation Comparison: First error different
+        Expected first error:
+        ---------------------------------------------------------
+        | Lexer error in file literals_12.c line 2
+        |       Unclosed character literal
+        ---------------------------------------------------------
+
+        Given first error:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+        Complete error stream given:
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+[rdjiles@pyrite-n1 Source]$
