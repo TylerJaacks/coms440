@@ -17,7 +17,7 @@ public:
     int currentIndex;
 
     std::string fileName = "";
-    int currentLine = 0;
+    int currentLine = 1;
 
 public:
     lexer();
