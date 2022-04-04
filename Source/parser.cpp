@@ -80,15 +80,14 @@ void parser::VarDecl() {
         if (match(TOKEN_SYMBOL_SEMICOLON)) {
             consume();
             return;
+        } else {
+            error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
+                  peak_next_token().lineNumber);
         }
-        else {
-            error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
-        }
-    }
-    else if (match(TOKEN_SYMBOL_SEMICOLON)) {
+    } else if (match(TOKEN_SYMBOL_SEMICOLON)) {
         consume();
     }
-    // ERROR: If we don't terminate variable declaration with ';'.
+        // ERROR: If we don't terminate variable declaration with ';'.
     else {
         error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
     }
@@ -203,19 +202,18 @@ void parser::Block() {
 // Stmt := e | VarDecl | FuncCall | IfStmt | ElseStmt | ElseIfStmt | ForStmt | WhileStmt | DoWhileStmt | ReturnStmt | BreakStmt | AssignStmt
 void parser::Stmt() {
     if (peak_next_token().type == TOKEN_TYPE_INTEGER ||
-            peak_next_token().type == TOKEN_TYPE_DOUBLE ||
-            peak_next_token().type == TOKEN_TYPE_CHAR) {
+        peak_next_token().type == TOKEN_TYPE_DOUBLE ||
+        peak_next_token().type == TOKEN_TYPE_CHAR) {
         VarDecl();
-    }
-    else {
+    } else {
         Expr();
 
         if (match(TOKEN_SYMBOL_SEMICOLON)) {
             consume();
             return;
-        }
-        else {
-            error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
+        } else {
+            error(";", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
+                  peak_next_token().lineNumber);
         }
     }
 }
@@ -233,31 +231,22 @@ void parser::Stmt() {
 //  ✅ '(' Type ')' Expr
 //  ✅ '(' Expr ')'
 void parser::Expr() {
-    // Make sure we aren't preforming a function call instead.
-    if (peak(2).type != TOKEN_SYMBOL_LEFT_PAREN) {
+    //UnaryExpr();
 
-        if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
-            ParseExpression();
+    if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
+        consume();
+    } else if (peak_next_token().type == TOKEN_LITERAL_REAL) {
+        token term = peak_next_token();
 
-            consume();
+        consume();
+    } else if (peak_next_token().type == TOKEN_LITERAL_CHAR) {
+        token term = peak_next_token();
 
-            return;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_REAL) {
-            consume();
+        consume();
+    } else if (peak_next_token().type == TOKEN_LITERAL_STRING) {
+        token term = peak_next_token();
 
-            return;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_CHAR) {
-            consume();
-
-            return;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_STRING) {
-            consume();
-
-            return;
-        }
+        consume();
     }
 
     if (peak_next_token().type == TOKEN_IDENTIFIER) {
@@ -273,8 +262,11 @@ void parser::Expr() {
 
                 return;
             }
-        }
-        else {
+            else {
+                error(")", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
+                      peak_next_token().lineNumber);
+            }
+        } else {
             LValue();
 
             if (AssignOp()) {
@@ -305,24 +297,19 @@ void parser::Expr() {
         if (match(TOKEN_TYPE_INTEGER)) {
             has_seen_type = true;
             consume();
-        }
-        else if (match(TOKEN_TYPE_VOID)) {
+        } else if (match(TOKEN_TYPE_VOID)) {
             has_seen_type = true;
             consume();
-        }
-        else if (match(TOKEN_TYPE_CHAR)) {
+        } else if (match(TOKEN_TYPE_CHAR)) {
             has_seen_type = true;
             consume();
-        }
-        else if (match(TOKEN_TYPE_DOUBLE)) {
+        } else if (match(TOKEN_TYPE_DOUBLE)) {
             has_seen_type = true;
             consume();
-        }
-        else if (match(TOKEN_TYPE_CHAR)) {
+        } else if (match(TOKEN_TYPE_CHAR)) {
             has_seen_type = true;
             consume();
-        }
-        else {
+        } else {
             has_seen_type = false;
             Expr();
         }
@@ -335,9 +322,9 @@ void parser::Expr() {
 
                 return;
             }
-        }
-        else {
-            error(")", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(), peak_next_token().lineNumber);
+        } else {
+            error(")", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),
+                  peak_next_token().lineNumber);
 
         }
 
@@ -345,14 +332,23 @@ void parser::Expr() {
     }
 }
 
+void parser::GroupingExpr() {
+
+}
+
+
+
+
+
+
+
 // TODO: Finish this.
 bool parser::UnaryOp() {
     if (match(TOKEN_SYMBOL_EXCLAMATION_MARK) && peak(2).type != TOKEN_SYMBOL_EQUAL_SIGN) {
         consume();
 
         return true;
-    }
-    else if (match(TOKEN_SYMBOL_MINUS_SIGN)) {
+    } else if (match(TOKEN_SYMBOL_MINUS_SIGN)) {
         if (peak(2).type != TOKEN_SYMBOL_EQUAL_SIGN || peak(2).type != TOKEN_SYMBOL_MINUS_SIGN) {
             consume();
 
@@ -360,8 +356,7 @@ bool parser::UnaryOp() {
         }
 
         return false;
-    }
-    else if (match(TOKEN_SYMBOL_TILDE)) {
+    } else if (match(TOKEN_SYMBOL_TILDE)) {
         consume();
 
         return true;
@@ -371,41 +366,26 @@ bool parser::UnaryOp() {
 }
 
 // TODO: Finish this.
-bool parser::BinaryOp()
-{
+bool parser::BinaryOp() {
 
 }
 
+// TODO: Finish
 // AssignOp :=
 bool parser::AssignOp() {
     if (match(TOKEN_SYMBOL_PLUS_ASSIGNMENT)) {
         consume();
-    }
-    else if (match(TOKEN_SYMBOL_MINUS_ASSIGNMENT)) {
+    } else if (match(TOKEN_SYMBOL_MINUS_ASSIGNMENT)) {
         consume();
-    }
-    else if (match(TOKEN_SYMBOL_MULT_ASSIGNMENT)) {
+    } else if (match(TOKEN_SYMBOL_MULT_ASSIGNMENT)) {
         consume();
-    }
-    else if (match(TOKEN_SYMBOL_DIVIDE_ASSIGNMENT)) {
+    } else if (match(TOKEN_SYMBOL_DIVIDE_ASSIGNMENT)) {
         consume();
-    }
-    else if (match(TOKEN_SYMBOL_MODULO_ASSIGNMENT)) {
+    } else if (match(TOKEN_SYMBOL_MODULO_ASSIGNMENT)) {
         consume();
     }
 
     return false;
-}
-
-void parser::ParseExpression() {
-    token lhs = peak_next_token();
-    consume();
-
-    ParseExpression2(lhs, 0);
-}
-
-void parser::ParseExpression2(token lhs, int minPrecedence) {
-    
 }
 
 // ExprList := Expr | Expr ',' ExprList

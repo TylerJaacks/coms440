@@ -15,6 +15,33 @@ public:
         this->tokens = tokens;
         currentTokenIndex = -1;
 
+        // A → A α | β
+        // A → β A'
+        // A' → α A' | ϵ
+
+        // E –> E + T | T
+        // T –> T * F | F
+        // F –> ( E ) | id
+
+        // E –> T E’
+        // E’ –> + T E’ | e
+        // T –> F T’
+        // T’ –> * F T’ | e
+        // F –> ( E ) | id
+
+        // Expr         := Expr '+' MultiExpr | MultiExpr
+        // MultiExpr    := MultiExpr '*' Literal
+
+        // Expr         := MultiExpr Expr2 | MultiExpr
+        // Expr2        :=  '+' MultiExpr Expr2 | e
+
+        // MultiExpr    := Literal MultiExpr2 | Literal
+        // MultiExpr2   := '*' Literal MultiExpr2 | e
+
+
+        // MultiExpr        := Expr '*' Expr | IntegerLiteral
+        // IntegerLiteral   := 0-9*
+
         this->precedenceMap["("] = 12;
         this->precedenceMap[")"] = 12;
         this->precedenceMap["["] = 12;
@@ -133,10 +160,6 @@ public:
 
     bool AssignOp();
 
-    void ParseExpression();
-
-    void ParseExpression2(token token, int minPrecedence);
-
     void Type();
 
     void Id();
@@ -151,5 +174,5 @@ public:
 
     void StringConstant();
 
-    void BinOp();
+    void GroupingExpr();
 };

@@ -150,6 +150,8 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
+                fprintf(stdout, "SUCCESS: Program is syntactically correct.");
+
                 exit(SUCCESS);
             }
             else if (arguments->output_path != "a.out") {

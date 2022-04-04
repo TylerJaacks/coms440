@@ -59,6 +59,7 @@ void lexer::preprocessor() {
 
 /**
  * TODO: Handle comments with '/' that allows multiple lines for a single line comment.
+ * TODO: Not working for multiline comments.
  */
 void lexer::ignoreComments() {
     if (characters[currentIndex] == '/' && characters[currentIndex++] == '/') {
@@ -290,9 +291,6 @@ void lexer::lex(token &token) {
             break;
 
         case '\"':
-            /**
-             * TODO: Handle Quotes in Quotes.
-             */
             if (characters[currentIndex] == '\"') {
                 currentIndex++;
 
@@ -337,10 +335,6 @@ void lexer::lex(token &token) {
                 }
 
                 /**
-                 * KEYWORDS
-                 */
-
-                /**
                  * TYPES
                  */
                 if (strcmp(identifierStr.c_str(), "int") == 0) {
@@ -372,7 +366,9 @@ void lexer::lex(token &token) {
                     token.value = "long";
                 }
 
-
+                /**
+                 * KEYWORDS
+                 */
                 else if (strcmp(identifierStr.c_str(), "signed") == 0) {
                     token.type = TOKEN_TYPE_MODIFIER_SIGNED;
                     token.value = "signed";
