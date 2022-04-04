@@ -201,9 +201,7 @@ void parser::Block() {
 
 // Stmt := e | VarDecl | FuncCall | IfStmt | ElseStmt | ElseIfStmt | ForStmt | WhileStmt | DoWhileStmt | ReturnStmt | BreakStmt | AssignStmt
 void parser::Stmt() {
-    if (peak_next_token().type == TOKEN_TYPE_INTEGER ||
-        peak_next_token().type == TOKEN_TYPE_DOUBLE ||
-        peak_next_token().type == TOKEN_TYPE_CHAR) {
+    if (peak_next_token().type == TOKEN_TYPE) {
         VarDecl();
     } else {
         Expr();
@@ -294,24 +292,9 @@ void parser::Expr() {
     if (match(TOKEN_SYMBOL_LEFT_PAREN)) {
         consume();
 
-        if (match(TOKEN_TYPE_INTEGER)) {
+        if (match(TOKEN_TYPE)) {
             has_seen_type = true;
             consume();
-        } else if (match(TOKEN_TYPE_VOID)) {
-            has_seen_type = true;
-            consume();
-        } else if (match(TOKEN_TYPE_CHAR)) {
-            has_seen_type = true;
-            consume();
-        } else if (match(TOKEN_TYPE_DOUBLE)) {
-            has_seen_type = true;
-            consume();
-        } else if (match(TOKEN_TYPE_CHAR)) {
-            has_seen_type = true;
-            consume();
-        } else {
-            has_seen_type = false;
-            Expr();
         }
 
         if (match(TOKEN_SYMBOL_RIGHT_PAREN)) {
@@ -432,8 +415,7 @@ void parser::StmtList() {
 
 // Type := INTEGER | DOUBLE | CHAR | VOID
 void parser::Type() {
-    if (peak_next_token().type == TOKEN_TYPE_INTEGER || peak_next_token().type == TOKEN_TYPE_DOUBLE ||
-        peak_next_token().type == TOKEN_TYPE_CHAR || peak_next_token().type == TOKEN_TYPE_VOID) {
+    if (peak_next_token().type == TOKEN_TYPE) {
         consume();
     } else {
         error("<Type>", peak_next_token().value.c_str(), peak_next_token().fileName.c_str(),

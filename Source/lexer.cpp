@@ -66,8 +66,6 @@ void lexer::ignoreComments() {
         while (!isNewline(characters[currentIndex])) {
             currentIndex++;
         }
-
-        currentIndex++;
     }
     else if (characters[currentIndex] == '/' && characters[currentIndex++] == '*') {
         while (characters[currentIndex] != '*' && characters[currentIndex++] != '/') {
@@ -161,7 +159,14 @@ void lexer::lex(token &token) {
                 break;
             }
         case '*':
-            if (characters[currentIndex + 1] == '=') {
+            if (characters[currentIndex - 1] == '/') {
+                break;
+            }
+            else if (characters[currentIndex + 1] == '/') {
+                currentIndex++;
+                break;
+            }
+            else if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_MULT_ASSIGNMENT;
                 token.value = "*=";
                 currentIndex++;
@@ -180,6 +185,9 @@ void lexer::lex(token &token) {
                 token.value = "/=";
                 currentIndex++;
                 currentIndex++;
+                break;
+            }
+            else if (characters[currentIndex + 1] == '/' || characters[currentIndex + 1] == '*') {
                 break;
             }
             else {
@@ -296,11 +304,27 @@ void lexer::lex(token &token) {
 
                 std::string stringLiteral;
 
-                while (characters[currentIndex] != '\"') {
+                stringLiteral += "\"";
+
+                while (characters[currentIndex] != '\"' && currentIndex <= characters.size()) {
                     stringLiteral += characters[currentIndex];
 
                     currentIndex++;
                 }
+
+                if (characters[currentIndex] != '\"' && currentIndex >= characters.size()) {
+                    fprintf(stderr, "Lexer error in file %s line %i\n"
+                                    "\tEnd of file while reading string literal.", fileName.c_str(), currentLine);
+                    exit(-1);
+                }
+
+                if (characters[currentIndex] != '\"') {
+                    fprintf(stderr, "Lexer error in file %s line %i\n"
+                                    "\tUnclosed string literal", fileName.c_str(), currentLine);
+                    exit(-1);
+                }
+
+                stringLiteral += "\"";
 
                 token.type = TOKEN_LITERAL_STRING;
                 token.value = stringLiteral;
@@ -313,11 +337,33 @@ void lexer::lex(token &token) {
 
                 std::string stringLiteral;
 
-                while (characters[currentIndex] != '\'') {
+                stringLiteral += '\'';
+
+                while (characters[currentIndex] != '\'' && currentIndex <= characters.size()) {
                     stringLiteral += characters[currentIndex];
 
                     currentIndex++;
                 }
+
+                if ((stringLiteral.size() != 4 && stringLiteral[1] == '\\') || (stringLiteral.size() >= 3)) {
+                    fprintf(stderr, "Lexer error in file %s line %i\n"
+                                    "\tExpected closing quote for character literal.", fileName.c_str(), currentLine);
+                    exit(-1);
+                }
+
+                if (characters[currentIndex] != '\'' && currentIndex >= characters.size()) {
+                    fprintf(stderr, "Lexer error in file %s line %i\n"
+                                    "\tExpected closing quote for character literal.", fileName.c_str(), currentLine);
+                    exit(-1);
+                }
+
+                if (characters[currentIndex] != '\'') {
+                    fprintf(stderr, "Lexer error in file %s line %i\n"
+                                    "\tUnclosed character literal", fileName.c_str(), currentLine);
+                    exit(-1);
+                }
+
+                stringLiteral += '\'';
 
                 token.type = TOKEN_LITERAL_CHAR;
                 token.value = stringLiteral;
@@ -338,31 +384,31 @@ void lexer::lex(token &token) {
                  * TYPES
                  */
                 if (strcmp(identifierStr.c_str(), "int") == 0) {
-                    token.type = TOKEN_TYPE_INTEGER;
+                    token.type = TOKEN_TYPE;
                     token.value = "int";
                 }
                 else if (strcmp(identifierStr.c_str(), "double") == 0) {
-                    token.type = TOKEN_TYPE_DOUBLE;
+                    token.type = TOKEN_TYPE;
                     token.value = "double";
                 }
                 else if (strcmp(identifierStr.c_str(), "float") == 0) {
-                    token.type = TOKEN_TYPE_FLOAT;
+                    token.type = TOKEN_TYPE;
                     token.value = "float";
                 }
                 else if (strcmp(identifierStr.c_str(), "char") == 0) {
-                    token.type = TOKEN_TYPE_CHAR;
+                    token.type = TOKEN_TYPE;
                     token.value = "char";
                 }
                 else if (strcmp(identifierStr.c_str(), "void") == 0) {
-                    token.type = TOKEN_TYPE_VOID;
+                    token.type = TOKEN_TYPE;
                     token.value = "void";
                 }
                 else if (strcmp(identifierStr.c_str(), "short") == 0) {
-                    token.type = TOKEN_TYPE_SHORT;
+                    token.type = TOKEN_TYPE;
                     token.value = "short";
                 }
                 else if (strcmp(identifierStr.c_str(), "long") == 0) {
-                    token.type = TOKEN_TYPE_LONG;
+                    token.type = TOKEN_TYPE;
                     token.value = "long";
                 }
 
@@ -480,7 +526,18 @@ void lexer::lex(token &token) {
             if (isDigit(characters[currentIndex])) {
                 std::string valueStr;
 
+                bool hasSeenDecimalPoint = false;
+
                 while (isDigit(characters[currentIndex]) || characters[currentIndex] == '.' || characters[currentIndex] == 'f') {
+                    if (characters[currentIndex] == '.') {
+                        if (hasSeenDecimalPoint) {
+                            break;
+                        }
+                        else {
+                            hasSeenDecimalPoint = true;
+                        }
+                    }
+
                     valueStr += characters[currentIndex];
 
                     currentIndex++;
