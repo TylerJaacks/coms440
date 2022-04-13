@@ -77,4 +77,4 @@ Call := Id '(' Args ')' ';'
 Args := ArgList | empty 
 ArgList := ArgList ',' Expr | Expr
 Id = [a-zA-Z_][a-zA-Z0-9_]*
-Constant := NumConstant | DoubleConstant | CharConst | StringConstant
+NumberConstant := NumConstant | DoubleConstant | CharConst | StringConstant

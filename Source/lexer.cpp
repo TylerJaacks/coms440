@@ -62,7 +62,7 @@ void lexer::preprocessor() {
  * TODO: Not working for multiline comments.
  */
 void lexer::ignoreComments() {
-    if (characters[currentIndex] == '/' && characters[currentIndex++] == '/') {
+    if (characters[currentIndex] == '/' && characters[currentIndex + 1] == '/') {
         while (!isNewline(characters[currentIndex])) {
             currentIndex++;
         }
@@ -255,12 +255,32 @@ void lexer::lex(token &token) {
                 break;
             }
         case '=':
+            if (characters[currentIndex - 1] == '<' ||
+                characters[currentIndex - 1] == '<' ||
+                characters[currentIndex - 1] == '!' ||
+                characters[currentIndex - 1] == '*' ||
+                characters[currentIndex - 1] == '/' ||
+                characters[currentIndex - 1] == '%' ||
+                characters[currentIndex - 1] == '-' ||
+                characters[currentIndex - 1] == '+'){
+                currentIndex++;
+                break;
+            }
+
             if (characters[currentIndex + 1] != '=') {
                 token.type = TOKEN_SYMBOL_EQUAL_SIGN;
                 token.value = "=";
                 currentIndex++;
                 break;
             }
+            if (characters[currentIndex + 1] == '=') {
+                token.type = TOKEN_SYMBOL_CMP_EQUAL;
+                token.value = "==";
+                currentIndex++;
+                currentIndex++;
+                break;
+            }
+            break;
         case ':':
             token.type = TOKEN_SYMBOL_COLON;
             token.value = ":";
@@ -272,6 +292,13 @@ void lexer::lex(token &token) {
             currentIndex++;
             break;
         case '&':
+            if (characters[currentIndex + 1] == '&') {
+                token.type = TOKEN_SYMBOL_CMP_AND;
+                token.value = "&&";
+                currentIndex += 2;
+                break;
+            }
+
             token.type = TOKEN_SYMBOL_AMPERSAND;
             token.value = "&";
             currentIndex++;
@@ -415,15 +442,6 @@ void lexer::lex(token &token) {
                 /**
                  * KEYWORDS
                  */
-                else if (strcmp(identifierStr.c_str(), "signed") == 0) {
-                    token.type = TOKEN_TYPE_MODIFIER_SIGNED;
-                    token.value = "signed";
-                }
-                else if (strcmp(identifierStr.c_str(), "unsigned") == 0) {
-                    token.type = TOKEN_TYPE_MODIFIER_UNSIGNED;
-                    token.value = "unsigned";
-                }
-
                 else if (strcmp(identifierStr.c_str(), "auto") == 0) {
                     token.type = TOKEN_KEYWORD_AUTO;
                     token.value = "auto";
@@ -573,7 +591,8 @@ std::vector<token> lexer::getTokens() {
         token token(TOKEN_UNDEFINED, "", 0, "");
 
         ignoreWhitespace();
-        ignoreComments();
+        // TODO: Fix this.
+        //ignoreComments();
         ignoreNewLine();
 
         lex(token);

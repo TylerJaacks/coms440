@@ -5,10 +5,49 @@
 
 class parser {
 public:
+    typedef enum {
+        LEFT_TO_RIGHT,
+        RIGHT_TO_LEFT
+    } associativity_t;
+
+    typedef enum {
+        UNDEFINED = 0,
+        VOID = 1,
+        INTEGER = 2,
+        CHAR = 3,
+        DOUBLE = 4,
+        STRING = 5
+    } type_t;
+
+    typedef struct {
+        type_t type;
+        std::string name;
+    } function_parameter_t;
+
+    typedef struct {
+        type_t return_type;
+        std::vector<function_parameter_t> parameters;
+    } function_t;
+
+    typedef struct {
+        type_t type;
+        std::string name;
+        std::string value;
+    } variable_t;
+
+public:
     std::vector<token> tokens;
     std::map<std::string, int> precedenceMap;
+    std::map<std::string, associativity_t> associativityMap;
+
+    std::vector<function_t> functions;
+
+    std::map<std::string, type_t> global_variables;
+    std::map<std::string, type_t> local_variables;
 
     int currentTokenIndex;
+
+    bool global = true;
 
 public:
     parser(std::vector<token> tokens) {
@@ -90,10 +129,63 @@ public:
         this->precedenceMap["%="] = 1;
 
         this->precedenceMap[","] = 0;
+
+
+
+        this->associativityMap["("] = LEFT_TO_RIGHT;
+        this->associativityMap[")"] = LEFT_TO_RIGHT;
+        this->associativityMap["["] = LEFT_TO_RIGHT;
+        this->associativityMap["]"] = LEFT_TO_RIGHT;
+        this->associativityMap["."] = LEFT_TO_RIGHT;
+
+        this->associativityMap["!"] = RIGHT_TO_LEFT;
+        this->associativityMap["~"] = RIGHT_TO_LEFT;
+        this->associativityMap["-"] = RIGHT_TO_LEFT; // - (Unary)
+        this->associativityMap["--"] = RIGHT_TO_LEFT;
+
+        // Type
+        this->associativityMap["Type"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["*"] = LEFT_TO_RIGHT;
+        this->associativityMap["/"] = LEFT_TO_RIGHT;
+        this->associativityMap["%"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["+"] = LEFT_TO_RIGHT;
+        this->associativityMap["-"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["<"] = LEFT_TO_RIGHT;
+        this->associativityMap["<="] = LEFT_TO_RIGHT;
+        this->associativityMap[">"] = LEFT_TO_RIGHT;
+        this->associativityMap[">="] = LEFT_TO_RIGHT;
+
+        this->associativityMap["=="] = LEFT_TO_RIGHT;
+        this->associativityMap["!="] = LEFT_TO_RIGHT;
+
+        this->associativityMap["&"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["|"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["&&"] = LEFT_TO_RIGHT;
+
+        this->associativityMap["||"] = LEFT_TO_RIGHT;
+
+        // ?:
+        this->associativityMap["?"] = RIGHT_TO_LEFT;
+        this->associativityMap[":"] = RIGHT_TO_LEFT;
+
+        this->associativityMap["+="] = RIGHT_TO_LEFT;
+        this->associativityMap["-="] = RIGHT_TO_LEFT;
+        this->associativityMap["*="] = RIGHT_TO_LEFT;
+        this->associativityMap["/="] = RIGHT_TO_LEFT;
+        this->associativityMap["%="] = RIGHT_TO_LEFT;
+
+        this->associativityMap[","] = LEFT_TO_RIGHT;
     }
 
 private:
-    void error(std::string expectedToken, std::string tokenValue, std::string fileName, int lineNumber);
+    static void error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
+
+    static void unexpected_token_error(const std::string& tokenValue, const std::string& fileName, int lineNumber);
 
     /**
      * Gets the next token without consuming the current token.
@@ -130,17 +222,13 @@ public:
 
     void VarDecl();
 
-    void VarDeclList();
+    void VarDeclList(type_t type);
 
-    void VarDeclId();
+    void VarDeclId(type_t type);
 
     void FuncDecl();
 
-    void FuncDeclParams();
-
     void FuncDeclParamList();
-
-    void FuncDeclParam();
 
     void Block();
 
@@ -148,31 +236,15 @@ public:
 
     void StmtList();
 
-    void Expr();
+    type_t Expr();
 
-    void LValue();
-
-    void ExprList();
-
-    bool UnaryOp();
-
-    bool BinaryOp();
-
-    bool AssignOp();
-
-    void Type();
+    type_t Type();
 
     void Id();
 
-    void Constant();
+    type_t ComputeExpression(int precedence);
 
-    void IntegerConstant();
+    type_t ComputeTerm();
 
-    void DoubleConstant();
-
-    void CharConstant();
-
-    void StringConstant();
-
-    void GroupingExpr();
+    token rollback();
 };
