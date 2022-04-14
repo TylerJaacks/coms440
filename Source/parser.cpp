@@ -3,6 +3,8 @@
 
 #include "parser.h"
 
+#include <utility>
+
 void parser::error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber) {
     std::fprintf(stderr, R"(ERROR: Expected '%s' but got '%s' instead. FILE: %s LINE: %d)", expectedToken.c_str(),
                  tokenValue.c_str(), fileName.c_str(), lineNumber);
@@ -14,7 +16,6 @@ void parser::unexpected_token_error(const std::string& tokenValue, const std::st
                  tokenValue.c_str(), fileName.c_str(), lineNumber);
     exit(EXIT_FAILURE);
 }
-
 
 token parser::peak_next_token() {
     return tokens[currentTokenIndex + 1];
@@ -169,8 +170,10 @@ void parser::VarDeclId(type_t type) {
 }
 
 void parser::FuncDecl() {
-    Type();
-    Id();
+    type_t type = Type();
+    std::string id = Id();
+
+    auto *func_params = new std::vector<function_parameter_t>();
 
     if (peak_next_token().type != TOKEN_SYMBOL_LEFT_PAREN) {
         error("(",
@@ -182,7 +185,11 @@ void parser::FuncDecl() {
         consume();
     }
 
-    FuncDeclParamList();
+    FuncDeclParamList(func_params);
+
+    function_t function = { .name = id, .return_type = type, .parameters = *func_params };
+
+    functions.push_back(function);
 
     if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
         error("(",
@@ -213,16 +220,20 @@ void parser::FuncDecl() {
 }
 
 // FuncDeclParamList := e | FuncDeclParam | FuncDeclParam ',' FuncDeclParamList
-void parser::FuncDeclParamList() {
+void parser::FuncDeclParamList(std::vector<function_parameter_t> *function_parameters) {
     if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
-        Type();
-        Id();
+        type_t type = Type();
+        std::string id = Id();
+
+        function_parameter_t param = { .type = type, .name = id };
+
+        function_parameters->push_back(param);
 
         if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
             consume();
 
             if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
-                FuncDeclParamList();
+                FuncDeclParamList(function_parameters);
             }
             else {
                 error("<Type>",
@@ -275,7 +286,7 @@ void parser::Stmt() {
     }
 
     // <Stmt> := 'break' ';' | 'continue' ';'
-    if (peak_next_token().type == TOKEN_KEYWORD_BREAK || peak_next_token().type == TOKEN_KEYWORD_CONTINUE) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_BREAK || peak_next_token().type == TOKEN_KEYWORD_CONTINUE) {
         consume();
 
         if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
@@ -291,7 +302,7 @@ void parser::Stmt() {
     }
 
     // <Stmt> := 'return' Expr ';' | 'return' ';'
-    if (peak_next_token().type == TOKEN_KEYWORD_RETURN) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_RETURN) {
         consume();
 
         if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
@@ -318,7 +329,7 @@ void parser::Stmt() {
     // <IfStmt> := 'if' '(' Expr ')' <Block>
     //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>*
     //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>* else <Block>
-    if (peak_next_token().type == TOKEN_KEYWORD_IF) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_IF) {
 IfLoop:
         consume();
 
@@ -368,7 +379,7 @@ IfLoop:
 
     // TODO: Check the for Stmt.
     // <ForStmt> := 'for' '(' <VarDecl> ';' <Expr> ';' <Expr> ';' ')' <Block>
-    if (peak_next_token().type == TOKEN_KEYWORD_FOR) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_FOR) {
         consume();
 
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
@@ -422,7 +433,7 @@ IfLoop:
     }
 
     // <WhileStmt> := 'while' '(' <Expr> ')' <Block>
-    if (peak_next_token().type == TOKEN_KEYWORD_WHILE) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_WHILE) {
         consume();
 
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
@@ -453,7 +464,7 @@ IfLoop:
     }
 
     // <DoWhileStmt> := 'do' <Block> 'while' '(' <Expr> ')' ';'
-    if (peak_next_token().type == TOKEN_KEYWORD_DO) {
+    else if (peak_next_token().type == TOKEN_KEYWORD_DO) {
         consume();
 
         Block();
@@ -496,22 +507,20 @@ IfLoop:
         return;
     }
 
-
-    // TODO: Look at this later.
-    Expr();
-
-    if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
-        error(";",
-              peak_next_token().value,
-              peak_next_token().fileName,
-              peak_next_token().lineNumber);
-    }
     else {
+        Expr();
+
+        if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
+            error(";",
+                  peak_next_token().value,
+                  peak_next_token().fileName,
+                  peak_next_token().lineNumber);
+        }
+
         consume();
 
         return;
     }
-
 }
 
 // StmtList := Stmt | Stmt StmtList
@@ -522,6 +531,29 @@ void parser::StmtList() {
 
     Stmt();
     StmtList();
+}
+
+// <FuncCallParamList> := e | <Expr> | Expr ',' <FuncDeclParamList>
+void parser::FuncCallParamList(std::string funcName, std::vector<type_t> *types) {
+    if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+        type_t type = Expr();
+
+        types->push_back(type);
+
+        if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
+            consume();
+
+            if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+                FuncCallParamList(std::move(funcName), types);
+            }
+            else {
+                error("<Expr>",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+        }
+    }
 }
 
 parser::type_t parser::Expr() {
@@ -564,192 +596,283 @@ parser::type_t parser::ComputeExpression(int precedence) {
 }
 
 parser::type_t parser::ComputeTerm() {
-    if (peak_next_token().type == TOKEN_IDENTIFIER) {
-        type_t identType;
+    // Handle literals.
+    switch (peak_next_token().type) {
+        case TOKEN_LITERAL_NUMBER:
+            consume();
+            return type_t::INTEGER;
+        case TOKEN_LITERAL_REAL:
+            consume();
+            return type_t::DOUBLE;
+        case TOKEN_LITERAL_CHAR:
+            consume();
+            return type_t::CHAR;
+        case TOKEN_LITERAL_STRING:
+            consume();
+            return type_t::STRING;
+        default:
+            break;
+    }
 
-        identType = global_variables[peak_next_token().value];
+    // Identifiers and l-values.
+    if (peak_next_token().type == TOKEN_IDENTIFIER) {
+        std::string name = peak_next_token().value;
 
         consume();
 
+        // An Identifier, left parenthesis, a comma-separated list of zero or more expressions, and a right parenthesis.
+        //
+        // <Term> := <Ident> '(' <ExprList> ')';
+        // <Term> := <Ident> '(' <Expr> ')';
+        //
+        // Returns: The return type of the function call.
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
             consume();
 
-            Expr();
+            std::vector<type_t> types;
+
+            FuncCallParamList(name, &types);
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
                 consume();
-                return identType;
             }
-            else if (peak_next_token().type == TOKEN_LITERAL_STRING
-                || peak_next_token().type == TOKEN_LITERAL_CHAR) {
-
-                consume();
-
-                if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
-                    consume();
-
-                    Expr();
-                }
-
-                if (match(TOKEN_SYMBOL_RIGHT_PAREN)) {
-                    consume();
-                    return identType;
-                }
-                else {
-                    error(")", peak_next_token().value, peak_next_token().fileName, peak_next_token().lineNumber);
-                }
-            }
-        }
-        else if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
-            consume();
-
-            if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT
-                || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
-                consume();
-            }
-
-            Expr();
-
-            if (match(TOKEN_SYMBOL_RIGHT_BRACKET)) {
-                consume();
-
-                if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT
-                    || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
-                    consume();
-                }
-                else {
-                    return identType;
-                }
-            } else {
-                error("]", peak_next_token().value, peak_next_token().fileName,
+            else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+                error(")",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
                       peak_next_token().lineNumber);
             }
+
+            if (!match(TOKEN_SYMBOL_SEMICOLON)) {
+                error(";",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+            else {
+                // Type checking function parameters.
+                std::vector<type_t> expectedTypes;
+                type_t expectedReturnType;
+
+                for (auto & function : functions) {
+                    if (name == function.name) {
+                        expectedReturnType = function.return_type;
+
+                        for (auto & parameter : function.parameters) {
+                            expectedTypes.push_back(parameter.type);
+                        }
+
+                        break;
+                    }
+                }
+
+                if (expectedTypes.size() != types.size()) {
+                    fprintf(stderr, "TYPE MISMATCH: Expected %lu arguments, got %lu\n", expectedTypes.size(), types.size());
+                    exit(-1);
+                }
+                else {
+                    for (int i = 0; i < expectedTypes.size(); i++) {
+                        if (expectedTypes[i] != types[i]) {
+                            fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                            exit(-1);
+                        }
+                    }
+                }
+
+                return expectedReturnType;
+            }
         }
-        else {
+
+        // An l-value with left and right brackets.
+        if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+            consume();
+
+            type_t type = Expr();
+
+            // Make sure that the type of the expression is an integer.
+            if (type != INTEGER) {
+                unexpected_token_error("<Integer>",
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+                consume();
+            }
+            else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_BRACKET) {
+                error("]",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
             if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
                 peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
                 consume();
+
+                if (global) {
+                    return global_variables[name];
+                } else {
+                    return local_variables[name];
+                }
             }
             else {
-                return identType;
+                if (global) {
+                    return global_variables[name];
+                } else {
+                    return local_variables[name];
+                }
             }
         }
-    }
-    // TODO: Handle Typing for Casting.
-    else if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
-        consume();
 
-        if (peak_next_token().type == TOKEN_TYPE) {
-            consume();
-
-            if (match(TOKEN_SYMBOL_RIGHT_PAREN)) {
-                consume();
-
-                Expr();
-
-                return UNDEFINED;
-            }
-            else {
-                error(")", peak_next_token().value, peak_next_token().fileName,
-                      peak_next_token().lineNumber);
-            }
-        }
-        // TODO: Handle Typing for Expr();
-        else {
-            Expr();
-
-            if (match(TOKEN_SYMBOL_RIGHT_PAREN)) {
-                consume();
-
-                return UNDEFINED;
-            }
-            else {
-                error(")", peak_next_token().value, peak_next_token().fileName,
-                      peak_next_token().lineNumber);
-            }
-        }
-    }
-    else if (peak_next_token().type == TOKEN_LITERAL_NUMBER ||
-        peak_next_token().type == TOKEN_LITERAL_STRING ||
-        peak_next_token().type == TOKEN_LITERAL_CHAR ||
-        peak_next_token().type == TOKEN_LITERAL_REAL) {
-
-        type_t literalType = UNDEFINED;
-
-        if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
-            literalType = INTEGER;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_STRING) {
-            literalType = STRING;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_CHAR) {
-            literalType = CHAR;
-        }
-        else if (peak_next_token().type == TOKEN_LITERAL_REAL) {
-            literalType = DOUBLE;
-        }
-
-        consume();
-
-        return literalType;
-    }
-    else if (peak_next_token().type == TOKEN_SYMBOL_EXCLAMATION_MARK ||
-        peak_next_token().type == TOKEN_SYMBOL_TILDE ||
-        peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
-        peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
-        consume();
-
-        if (match(TOKEN_IDENTIFIER)) {
+        // An l-value with increment or decrement.
+        if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
+                peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
             consume();
 
             if (global) {
-                return global_variables[peak_next_token().value];
-            }
-            else {
-                return local_variables[peak_next_token().value];
+                return global_variables[name];
+            } else {
+                return local_variables[name];
             }
         }
+
+        if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
+            || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
+            || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
+            || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
+            || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
+            || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
+            consume();
+
+            type_t type = Expr();
+
+            // TODO: Fix the Type checking.
+            if (global) {
+                if (global_variables[name]) {
+                    if (global_variables[name] == type) {
+                        return global_variables[name];
+                    } else {
+                        fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                        exit(-1);
+                    }
+                }
+                else {
+                    global_variables[name] = type;
+                    return type;
+                }
+            } else {
+                if (local_variables[name]) {
+                    if (local_variables[name] == type) {
+                        return local_variables[name];
+                    } else {
+                        fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                        exit(-1);
+                    }
+                }
+                else {
+                    local_variables[name] = type;
+                    return type;
+                }
+            }
+        }
+
+        if (global) {
+            return global_variables[name];
+        } else {
+            return local_variables[name];
+        }
+    }
+
+    // Unary operators.
+    if (peak_next_token().type == TOKEN_SYMBOL_MINUS_SIGN
+        || peak_next_token().type == TOKEN_SYMBOL_EXCLAMATION_MARK
+        || peak_next_token().type == TOKEN_SYMBOL_TILDE) {
+        consume();
+
+        return Expr();
+    }
+
+    // Ternary operator.
+    if (peak_next_token().type == TOKEN_SYMBOL_QUESTION_MARK) {
+        consume();
+
+        type_t type1 = Expr();
+
+        if (peak_next_token().type == TOKEN_SYMBOL_COLON) {
+            consume();
+
+            type_t type2 = Expr();
+
+            // TODO: Check that the types are the same.
+            return type1;
+        }
         else {
-            error("<Identifier>", peak_next_token().value, peak_next_token().fileName,
+            error(":",
+                  peak_next_token().value,
+                  peak_next_token().fileName,
                   peak_next_token().lineNumber);
         }
     }
-    else if (peak_next_token().type == TOKEN_SYMBOL_MINUS_SIGN) {
-        while (peak_next_token().type == '-') {
-            consume();
-        }
 
-        if (peak_next_token().type == TOKEN_LITERAL_NUMBER ||
-            peak_next_token().type == TOKEN_LITERAL_REAL) {
-            consume();
+    // Casting and Parenthesis wrapped expressions.
+    if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
+        type_t type;
 
-            if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
-                return INTEGER;
+        consume();
+
+        if (peak_next_token().type == TOKEN_TYPE) {
+            if (peak_next_token().value == "int") {
+                type = INTEGER;
             }
-            else if (peak_next_token().type == TOKEN_LITERAL_REAL) {
-                return DOUBLE;
+            else if (peak_next_token().value == "double") {
+                type = DOUBLE;
             }
-        }
-        else {
-            if (match(TOKEN_IDENTIFIER)) {
-                consume();
-
-                if (global) {
-                    return global_variables[peak_next_token().value];
-                }
-                else {
-                    return local_variables[peak_next_token().value];
-                }
+            else if (peak_next_token().value == "char") {
+                type = CHAR;
+            }
+            else if (peak_next_token().value == "void") {
+                type = VOID;
+            }
+            else if (peak_next_token().value == "string") {
+                type = STRING;
             }
             else {
-                error("<Identifier>", peak_next_token().value, peak_next_token().fileName,
+                error("<Type>",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            consume();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
+                consume();
+            }
+            else {
+                error(")",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            return Expr();
+        }
+        else {
+            type = Expr();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
+                consume();
+
+                return type;
+            }
+            else {
+                error(")",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
                       peak_next_token().lineNumber);
             }
         }
-    }
-    else {
-        error("<Term>", peak_next_token().value, peak_next_token().fileName,
-              peak_next_token().lineNumber);
     }
 }
 
@@ -790,11 +913,15 @@ parser::type_t parser::Type() {
 }
 
 // <Id> := [_a-zA-Z][_a-zA-Z0-9]*
-void parser::Id() {
+std::string parser::Id() {
     if (!match(TOKEN_IDENTIFIER)) {
         error("<Identifier>", peak_next_token().value, peak_next_token().fileName,
               peak_next_token().lineNumber);
     }
 
+    std::string id = peak_next_token().value;
+
     consume();
+
+    return id;
 }

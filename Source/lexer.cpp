@@ -138,7 +138,7 @@ void lexer::lex(token &token) {
                 break;
             }
         case '-':
-            if (characters[currentIndex + 1] == '+') {
+            if (characters[currentIndex + 1] == '-') {
                 token.type = TOKEN_SYMBOL_DECREMENT;
                 token.value = "--";
                 currentIndex++;

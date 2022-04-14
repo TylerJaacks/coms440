@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <string>
 #include "token.h"
 #include "lexer.h"
@@ -78,7 +75,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '1') {
-        char *buffer = 0;
+        char *buffer = nullptr;
         long length;
 
         FILE *f = fopen(arguments->input_path.c_str(), "rb");
@@ -124,7 +121,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '3') {
-        char *buffer = 0;
+        char *buffer = nullptr;
         long length;
 
         FILE *f = fopen(arguments->input_path.c_str(), "rb");
@@ -144,13 +141,7 @@ void handle_arguments(struct arguments *arguments) {
             if (arguments->output_path == "a.out") {
                 // lexer program_lexer = lexer(arguments->input_path, buffer);
 
-                // lexer program_lexer = lexer(arguments->input_path, "int a; \n int main()\n {\n a = 3 + 34 (5 % 1); \n}");
-
-//                lexer program_lexer = lexer(arguments->input_path, "int main() \n { \n if (4 < 3) {  \n }");
-
-//                lexer program_lexer = lexer(arguments->input_path, "int main() \n { \n if (4 < 3) \n { \n return \n } \n }");
-
-                lexer program_lexer = lexer(arguments->input_path, "int main() \n { \n do { } while (1);\n }");
+                lexer program_lexer = lexer(arguments->input_path, "int q; int b[4]; \n double a, c; \n int main() \n { \n  b[0]++ ? 4.0 : 3; (int) b; q = 3.0; \n }");
 
                 std::vector<token> tokens = program_lexer.getTokens();
 

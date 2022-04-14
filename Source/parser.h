@@ -25,6 +25,7 @@ public:
     } function_parameter_t;
 
     typedef struct {
+        std::string name;
         type_t return_type;
         std::vector<function_parameter_t> parameters;
     } function_t;
@@ -40,10 +41,10 @@ public:
     std::map<std::string, int> precedenceMap;
     std::map<std::string, associativity_t> associativityMap;
 
-    std::vector<function_t> functions;
-
     std::map<std::string, type_t> global_variables;
     std::map<std::string, type_t> local_variables;
+
+    std::vector<function_t> functions;
 
     int currentTokenIndex;
 
@@ -228,7 +229,7 @@ public:
 
     void FuncDecl();
 
-    void FuncDeclParamList();
+    void FuncDeclParamList(std::vector<function_parameter_t> *function_);
 
     void Block();
 
@@ -240,11 +241,13 @@ public:
 
     type_t Type();
 
-    void Id();
+    std::string Id();
 
     type_t ComputeExpression(int precedence);
 
     type_t ComputeTerm();
 
     token rollback();
+
+    void FuncCallParamList(std::string name, std::vector<type_t> *types);
 };
