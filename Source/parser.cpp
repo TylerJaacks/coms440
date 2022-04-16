@@ -6,8 +6,7 @@
 #include <utility>
 
 void parser::error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber) {
-    std::fprintf(stderr, R"(ERROR: Expected '%s' but got '%s' instead. FILE: %s LINE: %d)", expectedToken.c_str(),
-                 tokenValue.c_str(), fileName.c_str(), lineNumber);
+    std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected '%s'", fileName.c_str(), lineNumber, tokenValue.c_str(), expectedToken.c_str());
     exit(EXIT_FAILURE);
 }
 
@@ -153,6 +152,13 @@ void parser::VarDeclId(type_t type) {
     if (match(TOKEN_SYMBOL_LEFT_BRACKET)) {
         consume();
 
+        if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+            error("identifier (within expression)",
+                  peak_next_token().value,
+                  peak_next_token().fileName,
+                  peak_next_token().lineNumber);
+        }
+
         if (!match(TOKEN_LITERAL_NUMBER)) {
             error("<Integer Constant>", peak_next_token().value, peak_next_token().fileName,
                   peak_next_token().lineNumber);
@@ -228,6 +234,29 @@ void parser::FuncDeclParamList(std::vector<function_parameter_t> *function_param
         function_parameter_t param = { .type = type, .name = id };
 
         function_parameters->push_back(param);
+
+        if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+            consume();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+                error("identifier (within expression)",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            Expr();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+                consume();
+            }
+            else {
+                error(")",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+        }
 
         if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
             consume();
@@ -385,7 +414,6 @@ IfLoop:
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
             consume();
 
-            VarDecl();
             Expr();
 
             if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
@@ -409,6 +437,18 @@ IfLoop:
             else {
                 consume();
             }
+
+            Expr();
+
+//            if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
+//                error(";",
+//                      peak_next_token().value,
+//                      peak_next_token().fileName,
+//                      peak_next_token().lineNumber);
+//            }
+//            else {
+//                consume();
+//            }
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
                 consume();
@@ -507,6 +547,18 @@ IfLoop:
         return;
     }
 
+    if (peak_next_token().type == TOKEN_TYPE) {
+        consume();
+
+        if (peak_next_token().type == TOKEN_IDENTIFIER) {
+            consume();
+
+            rollback();
+            rollback();
+
+            VarDecl();
+        }
+    }
     else {
         Expr();
 
@@ -518,8 +570,6 @@ IfLoop:
         }
 
         consume();
-
-        return;
     }
 }
 
@@ -614,6 +664,249 @@ parser::type_t parser::ComputeTerm() {
             break;
     }
 
+    if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+        consume();
+
+        if (peak_next_token().type == TOKEN_IDENTIFIER) {
+            std::string name = peak_next_token().value;
+
+            consume();
+
+            // An Identifier, left parenthesis, a comma-separated list of zero or more expressions, and a right parenthesis.
+            //
+            // <Term> := <Ident> '(' <ExprList> ')';
+            // <Term> := <Ident> '(' <Expr> ')';
+            //
+            // Returns: The return type of the function call.
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
+                consume();
+
+                std::vector<type_t> types;
+
+                FuncCallParamList(name, &types);
+
+                if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
+                    consume();
+                }
+                else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+                    error(")",
+                          peak_next_token().value,
+                          peak_next_token().fileName,
+                          peak_next_token().lineNumber);
+                }
+
+                if (!match(TOKEN_SYMBOL_SEMICOLON)) {
+                    error(";",
+                          peak_next_token().value,
+                          peak_next_token().fileName,
+                          peak_next_token().lineNumber);
+                }
+                else {
+                    // Type checking function parameters.
+                    std::vector<type_t> expectedTypes;
+                    type_t expectedReturnType;
+
+                    for (auto & function : functions) {
+                        if (name == function.name) {
+                            expectedReturnType = function.return_type;
+
+                            for (auto & parameter : function.parameters) {
+                                expectedTypes.push_back(parameter.type);
+                            }
+
+                            break;
+                        }
+                    }
+
+                    if (expectedTypes.size() != types.size()) {
+                        fprintf(stderr, "TYPE MISMATCH: Expected %lu arguments, got %lu\n", expectedTypes.size(), types.size());
+                        exit(-1);
+                    }
+                    else {
+                        for (int i = 0; i < expectedTypes.size(); i++) {
+                            if (expectedTypes[i] != types[i]) {
+                                fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                                exit(-1);
+                            }
+                        }
+                    }
+
+                    return expectedReturnType;
+                }
+            }
+
+            // An l-value with left and right brackets.
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+                consume();
+
+                if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+                    error("identifier (within expression)",
+                          peak_next_token().value,
+                          peak_next_token().fileName,
+                          peak_next_token().lineNumber);
+                }
+
+                // TODO: Type check this.
+                type_t type = Expr();
+
+                if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+                    consume();
+                }
+                else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_BRACKET) {
+                    error("]",
+                          peak_next_token().value,
+                          peak_next_token().fileName,
+                          peak_next_token().lineNumber);
+                }
+
+                if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
+                    peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+                    consume();
+
+                    if (global) {
+                        return global_variables[name];
+                    } else {
+                        return local_variables[name];
+                    }
+                }
+
+                if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
+                    || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
+                    || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
+                    || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
+                    || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
+                    || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
+                    consume();
+
+                    type_t type = Expr();
+
+                    // TODO: Fix the Type checking.
+                    if (global) {
+                        if (global_variables[name]) {
+                            if (global_variables[name] == type) {
+                                return global_variables[name];
+                            } else {
+                                fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                                exit(-1);
+                            }
+                        }
+                        else {
+                            global_variables[name] = type;
+                            return type;
+                        }
+                    } else {
+                        if (local_variables[name]) {
+                            if (local_variables[name] == type) {
+                                return local_variables[name];
+                            } else {
+                                fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                                exit(-1);
+                            }
+                        }
+                        else {
+                            local_variables[name] = type;
+                            return type;
+                        }
+                    }
+                }
+            }
+
+            // An l-value with increment or decrement.
+            if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
+                peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+                consume();
+
+                if (global) {
+                    return global_variables[name];
+                } else {
+                    return local_variables[name];
+                }
+            }
+
+            if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
+                || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
+                consume();
+
+                type_t type = Expr();
+
+                // TODO: Fix the Type checking.
+                if (global) {
+                    if (global_variables[name]) {
+                        if (global_variables[name] == type) {
+                            return global_variables[name];
+                        } else {
+                            fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                            exit(-1);
+                        }
+                    }
+                    else {
+                        global_variables[name] = type;
+                        return type;
+                    }
+                } else {
+                    if (local_variables[name]) {
+                        if (local_variables[name] == type) {
+                            return local_variables[name];
+                        } else {
+                            if (global_variables[name]) {
+                                return global_variables[name];
+                            }
+                            else {
+                                fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                                exit(-1);
+                            }
+                        }
+                    }
+                    else {
+                        local_variables[name] = type;
+                        return type;
+                    }
+                }
+            }
+
+            if (global) {
+                return global_variables[name];
+            } else {
+                return local_variables[name];
+            }
+        }
+    }
+
+    if (peak_next_token().type == TOKEN_TYPE) {
+        type_t type = Type();
+        std::string name = Id();
+
+        if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+            consume();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+                error("identifier (within expression)",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            // TODO: Type check this.
+            Expr();
+
+            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+                consume();
+            }
+            else {
+                error("]",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+        }
+
+        return type;
+    }
+
     // Identifiers and l-values.
     if (peak_next_token().type == TOKEN_IDENTIFIER) {
         std::string name = peak_next_token().value;
@@ -687,14 +980,15 @@ parser::type_t parser::ComputeTerm() {
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
 
-            type_t type = Expr();
-
-            // Make sure that the type of the expression is an integer.
-            if (type != INTEGER) {
-                unexpected_token_error("<Integer>",
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+                error("identifier (within expression)",
+                      peak_next_token().value,
                       peak_next_token().fileName,
                       peak_next_token().lineNumber);
             }
+
+            // TODO: Type check this.
+            type_t type = Expr();
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                 consume();
@@ -716,11 +1010,44 @@ parser::type_t parser::ComputeTerm() {
                     return local_variables[name];
                 }
             }
-            else {
+
+            if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
+                || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
+                || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
+                consume();
+
+                type_t type = Expr();
+
+                // TODO: Fix the Type checking.
                 if (global) {
-                    return global_variables[name];
+                    if (global_variables[name]) {
+                        if (global_variables[name] == type) {
+                            return global_variables[name];
+                        } else {
+                            fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                            exit(-1);
+                        }
+                    }
+                    else {
+                        global_variables[name] = type;
+                        return type;
+                    }
                 } else {
-                    return local_variables[name];
+                    if (local_variables[name]) {
+                        if (local_variables[name] == type) {
+                            return local_variables[name];
+                        } else {
+                            fprintf(stderr, "TYPE MISMATCH: Expected %s, got %s\n", "<Type1>", "<Type2>");
+                            exit(-1);
+                        }
+                    }
+                    else {
+                        local_variables[name] = type;
+                        return type;
+                    }
                 }
             }
         }
@@ -874,6 +1201,8 @@ parser::type_t parser::ComputeTerm() {
             }
         }
     }
+
+    return UNDEFINED;
 }
 
 // <Type> := int | double | char | void | string

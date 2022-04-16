@@ -249,5 +249,5 @@ public:
 
     token rollback();
 
-    void FuncCallParamList(std::string name, std::vector<type_t> *types);
+    void FuncCallParamList(std::string name, std::vector<type_t> *params);
 };

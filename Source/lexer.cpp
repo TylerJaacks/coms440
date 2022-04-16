@@ -180,6 +180,21 @@ void lexer::lex(token &token) {
                 break;
             }
         case '/':
+            if (characters[currentIndex + 1] == '*') {
+                currentIndex += 2;
+
+                while (true) {
+                    if (characters[currentIndex] == '*' && characters[currentIndex + 1] == '/') {
+                        currentIndex += 2;
+                        break;
+                    }
+                    else {
+                        currentIndex++;
+                    }
+                }
+                break;
+            }
+
             if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_DIVIDE_ASSIGNMENT;
                 token.value = "/=";

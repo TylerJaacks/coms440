@@ -139,9 +139,7 @@ void handle_arguments(struct arguments *arguments) {
 
         if (buffer) {
             if (arguments->output_path == "a.out") {
-                // lexer program_lexer = lexer(arguments->input_path, buffer);
-
-                lexer program_lexer = lexer(arguments->input_path, "int q; int b[4]; \n double a, c; \n int main() \n { \n  b[0]++ ? 4.0 : 3; (int) b; q = 3.0; \n }");
+                lexer program_lexer = lexer(arguments->input_path, buffer);
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
@@ -149,7 +147,7 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
-                fprintf(stdout, "SUCCESS: Program is syntactically correct.");
+                fprintf(stdout, "File %s is syntactically correct.", arguments->input_path.c_str());
 
                 exit(SUCCESS);
             }
