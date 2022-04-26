@@ -16,7 +16,8 @@ public:
         INTEGER = 2,
         CHAR = 3,
         DOUBLE = 4,
-        STRING = 5
+        STRING = 5,
+        FLOAT = 6
     } type_t;
 
     typedef struct {
@@ -94,7 +95,10 @@ public:
         this->precedenceMap["--"] = 11;
 
         // Type
-        this->precedenceMap["Type"] = 11;
+        this->precedenceMap["int"] = 11;
+        this->precedenceMap["double"] = 11;
+        this->precedenceMap["char"] = 11;
+        this->precedenceMap["string"] = 11;
 
         this->precedenceMap["*"] = 10;
         this->precedenceMap["/"] = 10;
@@ -119,7 +123,6 @@ public:
 
         this->precedenceMap["||"] = 3;
 
-        // ?:
         this->precedenceMap["?"] = 2;
         this->precedenceMap[":"] = 2;
 
@@ -130,7 +133,6 @@ public:
         this->precedenceMap["%="] = 1;
 
         this->precedenceMap[","] = 0;
-
 
 
         this->associativityMap["("] = LEFT_TO_RIGHT;
@@ -144,8 +146,10 @@ public:
         this->associativityMap["-"] = RIGHT_TO_LEFT; // - (Unary)
         this->associativityMap["--"] = RIGHT_TO_LEFT;
 
-        // Type
-        this->associativityMap["Type"] = LEFT_TO_RIGHT;
+        this->associativityMap["int"] = LEFT_TO_RIGHT;
+        this->associativityMap["char"] = LEFT_TO_RIGHT;
+        this->associativityMap["double"] = LEFT_TO_RIGHT;
+        this->associativityMap["string"] = LEFT_TO_RIGHT;
 
         this->associativityMap["*"] = LEFT_TO_RIGHT;
         this->associativityMap["/"] = LEFT_TO_RIGHT;
@@ -181,10 +185,75 @@ public:
         this->associativityMap["%="] = RIGHT_TO_LEFT;
 
         this->associativityMap[","] = LEFT_TO_RIGHT;
+
+//        // Installing printf functions.
+//        function_t printf_function_str;
+//
+//        printf_function_str.name = "printf";
+//        printf_function_str.return_type = VOID;
+//
+//        function_parameter_t printf_str_parameter;
+//
+//        printf_str_parameter.type = STRING;
+//        printf_str_parameter.name = "str";
+//
+//        printf_function_str.parameters.push_back(printf_str_parameter);
+//
+//
+//        function_t printf_function_int_int;
+//
+//        printf_function_int_int.name = "printf";
+//        printf_function_int_int.return_type = VOID;
+//
+//        function_parameter_t printf_int_parameter_1;
+//        function_parameter_t printf_int_parameter_2;
+//
+//        printf_int_parameter_1.type = INTEGER;
+//        printf_int_parameter_1.name = "i1";
+//
+//        printf_int_parameter_2.type = INTEGER;
+//        printf_int_parameter_2.name = "i2";
+//
+//        printf_function_int_int.parameters.push_back(printf_int_parameter_1);
+//        printf_function_int_int.parameters.push_back(printf_int_parameter_2);
+//
+//
+//        // Install putchar function.
+//        function_t putc_function;
+//
+//        putc_function.name = "putc";
+//        putc_function.return_type = VOID;
+//
+//        function_parameter_t putc_int_parameter;
+//
+//        putc_int_parameter.type = CHAR;
+//        putc_int_parameter.name = "char";
+//
+//        putc_function.parameters.push_back(putc_int_parameter);
+//
+//
+//        function_t exit_function;
+//
+//        exit_function.name = "exit";
+//        exit_function.return_type = VOID;
+//
+//        function_parameter_t exit_int_parameter;
+//
+//        exit_int_parameter.name = "status";
+//        exit_int_parameter.type = INTEGER;
+//
+//        exit_function.parameters.push_back(exit_int_parameter);
+//
+//        this->functions.push_back(printf_function_str);
+//        this->functions.push_back(printf_function_int_int);
+//        this->functions.push_back(putc_function);
+//        this->functions.push_back(exit_function);
     }
 
 private:
     static void error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
+
+    static void error_no_quotes(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
 
     static void unexpected_token_error(const std::string& tokenValue, const std::string& fileName, int lineNumber);
 
@@ -250,4 +319,10 @@ public:
     token rollback();
 
     void FuncCallParamList(std::string name, std::vector<type_t> *params);
+
+    type_t parse_literals();
+
+    type_t parse_increment_decrement();
+
+    void IfBlock();
 };

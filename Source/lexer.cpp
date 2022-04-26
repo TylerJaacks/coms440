@@ -62,18 +62,18 @@ void lexer::preprocessor() {
  * TODO: Not working for multiline comments.
  */
 void lexer::ignoreComments() {
-    if (characters[currentIndex] == '/' && characters[currentIndex + 1] == '/') {
-        while (!isNewline(characters[currentIndex])) {
-            currentIndex++;
-        }
-    }
-    else if (characters[currentIndex] == '/' && characters[currentIndex++] == '*') {
-        while (characters[currentIndex] != '*' && characters[currentIndex++] != '/') {
-            currentIndex++;
-        }
-
-        currentIndex += 2;
-    }
+//    if (characters[currentIndex] == '/' && characters[currentIndex + 1] == '/') {
+//        while (!isNewline(characters[currentIndex])) {
+//            currentIndex++;
+//        }
+//    }
+//    else if (characters[currentIndex] == '/' && characters[currentIndex++] == '*') {
+//        while (characters[currentIndex] != '*' && characters[currentIndex++] != '/') {
+//            currentIndex++;
+//        }
+//
+//        currentIndex += 2;
+//    }
 }
 
 void lexer::ignoreNewLine() {
@@ -120,21 +120,22 @@ void lexer::lex(token &token) {
             if (characters[currentIndex + 1] == '+') {
                 token.type = TOKEN_SYMBOL_INCREMENT;
                 token.value = "++";
-                currentIndex++;
-                currentIndex++;
+                currentIndex = currentIndex + 2;
+
                 break;
             }
             else if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_PLUS_ASSIGNMENT;
                 token.value = "+=";
-                currentIndex++;
-                currentIndex++;
+                currentIndex = currentIndex + 2;
+
                 break;
             }
             else {
                 token.type = TOKEN_SYMBOL_PLUS_SIGN;
                 token.value = "+";
                 currentIndex++;
+
                 break;
             }
         case '-':
@@ -159,14 +160,7 @@ void lexer::lex(token &token) {
                 break;
             }
         case '*':
-            if (characters[currentIndex - 1] == '/') {
-                break;
-            }
-            else if (characters[currentIndex + 1] == '/') {
-                currentIndex++;
-                break;
-            }
-            else if (characters[currentIndex + 1] == '=') {
+            if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_MULT_ASSIGNMENT;
                 token.value = "*=";
                 currentIndex++;
@@ -195,6 +189,21 @@ void lexer::lex(token &token) {
                 break;
             }
 
+            if (characters[currentIndex + 1] == '/') {
+                while (true) {
+                    if (isNewline(characters[currentIndex])) {
+                        currentIndex++;
+                        currentLine++;
+                        break;
+                    }
+                    else {
+                        currentIndex++;
+                    }
+                }
+
+                break;
+            }
+
             if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_DIVIDE_ASSIGNMENT;
                 token.value = "/=";
@@ -202,9 +211,7 @@ void lexer::lex(token &token) {
                 currentIndex++;
                 break;
             }
-            else if (characters[currentIndex + 1] == '/' || characters[currentIndex + 1] == '*') {
-                break;
-            }
+
             else {
                 token.type = TOKEN_SYMBOL_FORWARD_SLASH;
                 token.value = "/";
@@ -271,7 +278,7 @@ void lexer::lex(token &token) {
             }
         case '=':
             if (characters[currentIndex - 1] == '<' ||
-                characters[currentIndex - 1] == '<' ||
+                characters[currentIndex - 1] == '>' ||
                 characters[currentIndex - 1] == '!' ||
                 characters[currentIndex - 1] == '*' ||
                 characters[currentIndex - 1] == '/' ||
@@ -607,7 +614,7 @@ std::vector<token> lexer::getTokens() {
 
         ignoreWhitespace();
         // TODO: Fix this.
-        //ignoreComments();
+        // ignoreComments();
         ignoreNewLine();
 
         lex(token);
@@ -615,7 +622,7 @@ std::vector<token> lexer::getTokens() {
         if (token.type != TOKEN_UNDEFINED) tokens.push_back(token);
     }
 
-    tokens.push_back(token(TOKEN_EOF, "EOF", this->currentIndex, this->fileName));
+    tokens.push_back(token(TOKEN_EOF, "EOF", this->currentLine, this->fileName));
 
     return tokens;
 }
