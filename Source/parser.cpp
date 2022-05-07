@@ -17,35 +17,30 @@ void parser::error(const std::string &expectedToken, const std::string &tokenVal
                    int lineNumber) {
 
     if (tokenValue == "EOF") {
-        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected '%s'", fileName.c_str(), lineNumber,
+        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected '%s'", fileName.c_str(),
+                     lineNumber,
                      expectedToken.c_str());
-    }
-    else {
-        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected '%s'", fileName.c_str(), lineNumber,
+    } else {
+        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected '%s'", fileName.c_str(),
+                     lineNumber,
                      tokenValue.c_str(), expectedToken.c_str());
     }
 
     exit(EXIT_FAILURE);
 }
 
-void
-parser::error_no_quotes(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
+void parser::error_no_quotes(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
                         int lineNumber) {
     if (tokenValue == "EOF") {
-        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(), lineNumber,
+        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(),
+                     lineNumber,
                      expectedToken.c_str());
-    }
-    else {
-        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected %s", fileName.c_str(), lineNumber,
+    } else {
+        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected %s", fileName.c_str(),
+                     lineNumber,
                      tokenValue.c_str(), expectedToken.c_str());
     }
 
-    exit(EXIT_FAILURE);
-}
-
-void parser::unexpected_token_error(const std::string &tokenValue, const std::string &fileName, int lineNumber) {
-    std::fprintf(stderr, R"(ERROR: Unexpected Token '%s' instead. FILE: %s LINE: %d)",
-                 tokenValue.c_str(), fileName.c_str(), lineNumber);
     exit(EXIT_FAILURE);
 }
 
@@ -152,9 +147,9 @@ void parser::VarDecl() {
         return;
     } else {
         error_no_quotes("',' or ';'",
-              peak_next_token().value,
-              peak_next_token().fileName,
-              peak_next_token().lineNumber);
+                        peak_next_token().value,
+                        peak_next_token().fileName,
+                        peak_next_token().lineNumber);
     }
 }
 
@@ -491,9 +486,9 @@ void parser::Stmt() {
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
                 error_no_quotes("identifier (within expression)",
-                      peak_next_token().value,
-                      peak_next_token().fileName,
-                      peak_next_token().lineNumber);
+                                peak_next_token().value,
+                                peak_next_token().fileName,
+                                peak_next_token().lineNumber);
             } else {
                 Expr();
             }
@@ -584,9 +579,9 @@ void parser::Stmt() {
 void parser::StmtList() {
     if (peak_next_token().type == TOKEN_EOF) {
         error_no_quotes("identifier (within expression)",
-              peak_next_token().value,
-              peak_next_token().fileName,
-              peak_next_token().lineNumber);
+                        peak_next_token().value,
+                        peak_next_token().fileName,
+                        peak_next_token().lineNumber);
     }
 
     if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACE) {
@@ -969,7 +964,7 @@ parser::type_t parser::ComputeTerm() {
 
                 bool function_found = false;
 
-                for (auto & function : functions) {
+                for (auto &function: functions) {
                     if (function.name == name) {
                         if (types.size() == function.parameters.size()) {
                             function_found = true;
@@ -1174,14 +1169,14 @@ parser::type_t parser::ComputeTerm() {
 
                 return type;
             }
-        }
-        else {
+        } else {
             type_t type = Expr();
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
                 consume();
 
-                if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+                if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
+                    peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
                     error(";",
                           peak_next_token().value,
                           peak_next_token().fileName,
@@ -1204,8 +1199,7 @@ parser::type_t parser::ComputeTerm() {
 
         if (peak_next_token().type == TOKEN_TYPE) {
             Type();
-        }
-        else {
+        } else {
             type_t type = Expr();
         }
 
@@ -1246,7 +1240,7 @@ parser::type_t parser::Type() {
             type = type_t::DOUBLE;
         } else if (peak_next_token().value == "float") {
             type = type_t::FLOAT;
-        }else if (peak_next_token().value == "char") {
+        } else if (peak_next_token().value == "char") {
             type = type_t::CHAR;
         } else if (peak_next_token().value == "void") {
             type = type_t::VOID;

@@ -162,6 +162,8 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
+                fprintf(stdout, "File %s is syntactically correct.", arguments->input_path.c_str());
+
                 exit(SUCCESS);
             }
         }
