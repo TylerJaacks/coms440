@@ -13,8 +13,7 @@ lexer::lexer(std::string fileName, std::string text) {
 bool lexer::isWhitespace(char c) {
     if (c == ' ') {
         return true;
-    }
-    else if (c == '\t') {
+    } else if (c == '\t') {
         return true;
     }
 
@@ -24,8 +23,7 @@ bool lexer::isWhitespace(char c) {
 bool lexer::isNewline(char c) {
     if (c == '\n') {
         return true;
-    }
-    else if (c == '\r') {
+    } else if (c == '\r') {
         return true;
     }
 
@@ -123,15 +121,13 @@ void lexer::lex(token &token) {
                 currentIndex = currentIndex + 2;
 
                 break;
-            }
-            else if (characters[currentIndex + 1] == '=') {
+            } else if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_PLUS_ASSIGNMENT;
                 token.value = "+=";
                 currentIndex = currentIndex + 2;
 
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_PLUS_SIGN;
                 token.value = "+";
                 currentIndex++;
@@ -145,15 +141,13 @@ void lexer::lex(token &token) {
                 currentIndex++;
                 currentIndex++;
                 break;
-            }
-            else if (characters[currentIndex + 1] == '=') {
+            } else if (characters[currentIndex + 1] == '=') {
                 token.type = TOKEN_SYMBOL_MINUS_ASSIGNMENT;
                 token.value = "-=";
                 currentIndex++;
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_MINUS_SIGN;
                 token.value = "-";
                 currentIndex++;
@@ -166,8 +160,7 @@ void lexer::lex(token &token) {
                 currentIndex++;
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_ASTERISK;
                 token.value = "*";
                 currentIndex++;
@@ -181,8 +174,7 @@ void lexer::lex(token &token) {
                     if (characters[currentIndex] == '*' && characters[currentIndex + 1] == '/') {
                         currentIndex += 2;
                         break;
-                    }
-                    else {
+                    } else {
                         currentIndex++;
                     }
                 }
@@ -195,8 +187,7 @@ void lexer::lex(token &token) {
                         currentIndex++;
                         currentLine++;
                         break;
-                    }
-                    else {
+                    } else {
                         currentIndex++;
                     }
                 }
@@ -210,9 +201,7 @@ void lexer::lex(token &token) {
                 currentIndex++;
                 currentIndex++;
                 break;
-            }
-
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_FORWARD_SLASH;
                 token.value = "/";
                 currentIndex++;
@@ -225,8 +214,7 @@ void lexer::lex(token &token) {
                 currentIndex++;
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_PERCENT_SIGN;
                 token.value = "%";
                 currentIndex++;
@@ -238,8 +226,7 @@ void lexer::lex(token &token) {
                 token.value = "!=";
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_EXCLAMATION_MARK;
                 token.value = "!";
                 currentIndex++;
@@ -256,8 +243,7 @@ void lexer::lex(token &token) {
                 token.value = "<=";
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_CMP_LESS_THAN;
                 token.value = "<";
                 currentIndex++;
@@ -269,8 +255,7 @@ void lexer::lex(token &token) {
                 token.value = ">=";
                 currentIndex++;
                 break;
-            }
-            else {
+            } else {
                 token.type = TOKEN_SYMBOL_CMP_GREATER_THAN;
                 token.value = ">";
                 currentIndex++;
@@ -284,7 +269,7 @@ void lexer::lex(token &token) {
                 characters[currentIndex - 1] == '/' ||
                 characters[currentIndex - 1] == '%' ||
                 characters[currentIndex - 1] == '-' ||
-                characters[currentIndex - 1] == '+'){
+                characters[currentIndex - 1] == '+') {
                 currentIndex++;
                 break;
             }
@@ -319,12 +304,12 @@ void lexer::lex(token &token) {
                 token.value = "&&";
                 currentIndex += 2;
                 break;
+            } else {
+                token.type = TOKEN_SYMBOL_AMPERSAND;
+                token.value = "&";
+                currentIndex++;
+                break;
             }
-
-            token.type = TOKEN_SYMBOL_AMPERSAND;
-            token.value = "&";
-            currentIndex++;
-            break;
         case ',':
             token.type = TOKEN_SYMBOL_COMMA;
             token.value = ",";
@@ -336,17 +321,22 @@ void lexer::lex(token &token) {
             currentIndex++;
             break;
         case '|':
-            token.type = TOKEN_SYMBOL_PIPE;
-            token.value = "|";
-            currentIndex++;
-            break;
-
+            if (characters[currentIndex + 1] == '|') {
+                token.type = TOKEN_SYMBOL_CMP_OR;
+                token.value = "||";
+                currentIndex += 2;
+                break;
+            } else {
+                token.type = TOKEN_SYMBOL_PIPE;
+                token.value = "|";
+                currentIndex++;
+                break;
+            }
         case '~':
             token.type = TOKEN_SYMBOL_TILDE;
             token.value = "~";
             currentIndex++;
             break;
-
         case '\"':
             if (characters[currentIndex] == '\"') {
                 currentIndex++;
@@ -423,7 +413,8 @@ void lexer::lex(token &token) {
             if (isLetter(characters[currentIndex]) || characters[currentIndex] == '_') {
                 std::string identifierStr;
 
-                while (isLetter(characters[currentIndex]) || isDigit(characters[currentIndex]) || characters[currentIndex] == '_') {
+                while (isLetter(characters[currentIndex]) || isDigit(characters[currentIndex]) ||
+                       characters[currentIndex] == '_') {
                     identifierStr += characters[currentIndex];
 
                     currentIndex++;
@@ -435,129 +426,99 @@ void lexer::lex(token &token) {
                 if (strcmp(identifierStr.c_str(), "int") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "int";
-                }
-                else if (strcmp(identifierStr.c_str(), "double") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "double") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "double";
-                }
-                else if (strcmp(identifierStr.c_str(), "float") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "float") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "float";
-                }
-                else if (strcmp(identifierStr.c_str(), "char") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "char") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "char";
-                }
-                else if (strcmp(identifierStr.c_str(), "void") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "void") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "void";
-                }
-                else if (strcmp(identifierStr.c_str(), "short") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "short") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "short";
-                }
-                else if (strcmp(identifierStr.c_str(), "long") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "long") == 0) {
                     token.type = TOKEN_TYPE;
                     token.value = "long";
                 }
 
-                /**
-                 * KEYWORDS
-                 */
+                    /**
+                     * KEYWORDS
+                     */
                 else if (strcmp(identifierStr.c_str(), "auto") == 0) {
                     token.type = TOKEN_KEYWORD_AUTO;
                     token.value = "auto";
-                }
-                else if (strcmp(identifierStr.c_str(), "break") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "break") == 0) {
                     token.type = TOKEN_KEYWORD_BREAK;
                     token.value = "break";
-                }
-                else if (strcmp(identifierStr.c_str(), "const") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "const") == 0) {
                     token.type = TOKEN_KEYWORD_CONST;
                     token.value = "const";
-                }
-                else if (strcmp(identifierStr.c_str(), "case") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "case") == 0) {
                     token.type = TOKEN_KEYWORD_CASE;
                     token.value = "case";
-                }
-                else if (strcmp(identifierStr.c_str(), "continue") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "continue") == 0) {
                     token.type = TOKEN_KEYWORD_CONTINUE;
                     token.value = "continue";
-                }
-                else if (strcmp(identifierStr.c_str(), "default") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "default") == 0) {
                     token.type = TOKEN_KEYWORD_DEFAULT;
                     token.value = "default";
-                }
-                else if (strcmp(identifierStr.c_str(), "do") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "do") == 0) {
                     token.type = TOKEN_KEYWORD_DO;
                     token.value = "do";
-                }
-                else if (strcmp(identifierStr.c_str(), "else") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "else") == 0) {
                     token.type = TOKEN_KEYWORD_ELSE;
                     token.value = "else";
-                }
-                else if (strcmp(identifierStr.c_str(), "enum") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "enum") == 0) {
                     token.type = TOKEN_KEYWORD_ENUM;
                     token.value = "enum";
-                }
-                else if (strcmp(identifierStr.c_str(), "extern") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "extern") == 0) {
                     token.type = TOKEN_KEYWORD_EXTERN;
                     token.value = "extern";
-                }
-                else if (strcmp(identifierStr.c_str(), "for") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "for") == 0) {
                     token.type = TOKEN_KEYWORD_FOR;
                     token.value = "for";
-                }
-                else if (strcmp(identifierStr.c_str(), "goto") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "goto") == 0) {
                     token.type = TOKEN_KEYWORD_GOTO;
                     token.value = "goto";
-                }
-                else if (strcmp(identifierStr.c_str(), "if") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "if") == 0) {
                     token.type = TOKEN_KEYWORD_IF;
                     token.value = "if";
-                }
-                else if (strcmp(identifierStr.c_str(), "register") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "register") == 0) {
                     token.type = TOKEN_KEYWORD_REGISTER;
                     token.value = "register";
-                }
-                else if (strcmp(identifierStr.c_str(), "return") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "return") == 0) {
                     token.type = TOKEN_KEYWORD_RETURN;
                     token.value = "return";
-                }
-                else if (strcmp(identifierStr.c_str(), "sizeof") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "sizeof") == 0) {
                     token.type = TOKEN_KEYWORD_SIZEOF;
                     token.value = "sizeof";
-                }
-                else if (strcmp(identifierStr.c_str(), "static") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "static") == 0) {
                     token.type = TOKEN_KEYWORD_STATIC;
                     token.value = "static";
-                }
-                else if (strcmp(identifierStr.c_str(), "struct") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "struct") == 0) {
                     token.type = TOKEN_KEYWORD_STRUCT;
                     token.value = "struct";
-                }
-                else if (strcmp(identifierStr.c_str(), "switch") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "switch") == 0) {
                     token.type = TOKEN_KEYWORD_SWITCH;
                     token.value = "switch";
-                }
-                else if (strcmp(identifierStr.c_str(), "typedef") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "typedef") == 0) {
                     token.type = TOKEN_KEYWORD_TYPEDEF;
                     token.value = "typedef";
-                }
-                else if (strcmp(identifierStr.c_str(), "union") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "union") == 0) {
                     token.type = TOKEN_KEYWORD_UNION;
                     token.value = "union";
-                }
-                else if (strcmp(identifierStr.c_str(), "volatile") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "volatile") == 0) {
                     token.type = TOKEN_KEYWORD_VOLATILE;
                     token.value = "volatile";
-                }
-                else if (strcmp(identifierStr.c_str(), "while") == 0) {
+                } else if (strcmp(identifierStr.c_str(), "while") == 0) {
                     token.type = TOKEN_KEYWORD_WHILE;
                     token.value = "while";
-                }
-
-                else {
+                } else {
                     token.type = TOKEN_IDENTIFIER;
                     token.value = identifierStr;
                 }
@@ -568,12 +529,12 @@ void lexer::lex(token &token) {
 
                 bool hasSeenDecimalPoint = false;
 
-                while (isDigit(characters[currentIndex]) || characters[currentIndex] == '.' || characters[currentIndex] == 'f') {
+                while (isDigit(characters[currentIndex]) || characters[currentIndex] == '.' ||
+                       characters[currentIndex] == 'f') {
                     if (characters[currentIndex] == '.') {
                         if (hasSeenDecimalPoint) {
                             break;
-                        }
-                        else {
+                        } else {
                             hasSeenDecimalPoint = true;
                         }
                     }
@@ -586,12 +547,10 @@ void lexer::lex(token &token) {
                 if (characters[currentIndex - 1] == 'f') {
                     token.type = TOKEN_LITERAL_REAL;
                     token.value = valueStr;
-                }
-                else if (valueStr.find('.') != std::string::npos) {
+                } else if (valueStr.find('.') != std::string::npos) {
                     token.type = TOKEN_LITERAL_REAL;
                     token.value = valueStr;
-                }
-                else if (characters[currentIndex - 1] != 'f' && valueStr.find('.') == std::string::npos) {
+                } else if (characters[currentIndex - 1] != 'f' && valueStr.find('.') == std::string::npos) {
                     token.type = TOKEN_LITERAL_NUMBER;
                     token.value = valueStr;
                 }
