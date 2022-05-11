@@ -163,7 +163,7 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
-                fprintf(stdout, "File %s is syntactically correct.", arguments->input_path.c_str());
+                fprintf(f, "File %s is syntactically correct.", arguments->input_path.c_str());
 
                 exit(SUCCESS);
             }
@@ -196,6 +196,17 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_typechecker.Program();
 
+                if (program_typechecker.type_error_list.empty()) {
+                    for (auto & i : program_typechecker.type_decl_list) {
+                        fprintf(stdout, "%s", i.c_str());
+                    }
+                }
+                else if (!program_typechecker.type_error_list.empty()) {
+                    for (auto & i : program_typechecker.type_error_list) {
+                        fprintf(stderr, "%s", i.c_str());
+                    }
+                }
+
                 exit(SUCCESS);
             }
             else if (arguments->output_path != "a.out") {
@@ -203,11 +214,22 @@ void handle_arguments(struct arguments *arguments) {
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
-                FILE *f = fopen(arguments->output_path.c_str(), "w+");
+                FILE *fileOutput = fopen(arguments->output_path.c_str(), "w+");
 
                 typechecker program_typechecker(tokens);
 
                 program_typechecker.Program();
+
+                if (program_typechecker.type_error_list.empty()) {
+                    for (int i = 0; i < program_typechecker.type_decl_list.size() - 1; i++) {
+                        fprintf(fileOutput, "%s", program_typechecker.type_decl_list[i].c_str());
+                    }
+                }
+                else if (!program_typechecker.type_error_list.empty()) {
+                    for (int i = 0; i < program_typechecker.type_error_list.size() - 1; i++) {
+                        fprintf(fileOutput, "%s", program_typechecker.type_error_list[i].c_str());
+                    }
+                }
 
                 exit(SUCCESS);
             }

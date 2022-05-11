@@ -320,11 +320,12 @@ void lexer::lex(token &token) {
                 currentIndex += 2;
                 break;
             }
-
-            token.type = TOKEN_SYMBOL_AMPERSAND;
-            token.value = "&";
-            currentIndex++;
-            break;
+            else {
+                token.type = TOKEN_SYMBOL_AMPERSAND;
+                token.value = "&";
+                currentIndex++;
+                break;
+            }
         case ',':
             token.type = TOKEN_SYMBOL_COMMA;
             token.value = ",";
@@ -336,11 +337,19 @@ void lexer::lex(token &token) {
             currentIndex++;
             break;
         case '|':
-            token.type = TOKEN_SYMBOL_PIPE;
-            token.value = "|";
-            currentIndex++;
+            if (characters[currentIndex + 1] == '|') {
+                token.type = TOKEN_SYMBOL_CMP_OR;
+                token.value = "||";
+                currentIndex += 2;
+                break;
+            }
+            else {
+                token.type = TOKEN_SYMBOL_PIPE;
+                token.value = "|";
+                currentIndex++;
+                break;
+            }
             break;
-
         case '~':
             token.type = TOKEN_SYMBOL_TILDE;
             token.value = "~";

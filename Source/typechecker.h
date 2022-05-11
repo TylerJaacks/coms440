@@ -38,12 +38,6 @@ public:
         std::vector<function_parameter_t> parameters;
     } function_t;
 
-    typedef struct {
-        type_t type;
-        std::string name;
-        std::string value;
-    } variable_t;
-
 public:
     std::vector<token> tokens;
     std::map<std::string, int> precedenceMap;
@@ -56,7 +50,16 @@ public:
 
     int currentTokenIndex;
 
+    std::vector<std::string> type_decl_list;
+    std::vector<std::string> type_error_list;
+
     bool global = true;
+    bool is_in_function = false;
+
+    std::string function_name = "";
+    type_t function_return_type = UNDEFINED;
+
+    bool found_return_statement = false;
 
 public:
     typechecker(std::vector<token> tokens) {
@@ -192,103 +195,7 @@ public:
         this->associativityMap["%="] = RIGHT_TO_LEFT;
 
         this->associativityMap[","] = LEFT_TO_RIGHT;
-
-//        // Installing printf functions.
-//        function_t printf_function_str;
-//
-//        printf_function_str.name = "printf";
-//        printf_function_str.return_type = VOID;
-//
-//        function_parameter_t printf_str_parameter;
-//
-//        printf_str_parameter.type = STRING;
-//        printf_str_parameter.name = "str";
-//
-//        printf_function_str.parameters.push_back(printf_str_parameter);
-//
-//
-//        function_t printf_function_int_int;
-//
-//        printf_function_int_int.name = "printf";
-//        printf_function_int_int.return_type = VOID;
-//
-//        function_parameter_t printf_int_parameter_1;
-//        function_parameter_t printf_int_parameter_2;
-//
-//        printf_int_parameter_1.type = INTEGER;
-//        printf_int_parameter_1.name = "i1";
-//
-//        printf_int_parameter_2.type = INTEGER;
-//        printf_int_parameter_2.name = "i2";
-//
-//        printf_function_int_int.parameters.push_back(printf_int_parameter_1);
-//        printf_function_int_int.parameters.push_back(printf_int_parameter_2);
-//
-//
-//        // Install putchar function.
-//        function_t putc_function;
-//
-//        putc_function.name = "putc";
-//        putc_function.return_type = VOID;
-//
-//        function_parameter_t putc_int_parameter;
-//
-//        putc_int_parameter.type = CHAR;
-//        putc_int_parameter.name = "char";
-//
-//        putc_function.parameters.push_back(putc_int_parameter);
-//
-//
-//        function_t exit_function;
-//
-//        exit_function.name = "exit";
-//        exit_function.return_type = VOID;
-//
-//        function_parameter_t exit_int_parameter;
-//
-//        exit_int_parameter.name = "status";
-//        exit_int_parameter.type = INTEGER;
-//
-//        exit_function.parameters.push_back(exit_int_parameter);
-//
-//        this->functions.push_back(printf_function_str);
-//        this->functions.push_back(printf_function_int_int);
-//        this->functions.push_back(putc_function);
-//        this->functions.push_back(exit_function);
     }
-
-private:
-    static void error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
-
-    static void error_no_quotes(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
-
-    static void unexpected_token_error(const std::string& tokenValue, const std::string& fileName, int lineNumber);
-
-    /**
-     * Gets the next token without consuming the current token.
-     * @return the next token.
-     */
-    token peak_next_token();
-
-    /**
-     * Gets the next n token.
-     * @param n the offset.
-     * @return the nth token.
-     */
-    token peak(int n);
-
-    /**
-     * Checks if the next token_type is the same as the excepted.
-     * @param type the expected token_type.
-     * @return if the type matches.
-     */
-    bool match(token_type type);
-
-    /**
-     * Gets the current token and advance the current token index.
-     * @return the current token.
-     */
-    token consume();
 
 public:
     void Program();
@@ -322,8 +229,6 @@ public:
     type_t ComputeExpression(int precedence);
 
     type_t ComputeTerm();
-
-    token rollback();
 
     void FuncCallParamList(std::string name, std::vector<type_t> *params);
 
@@ -361,6 +266,39 @@ private:
         }
     }
 
+    std::string type_to_string2(type_t type, std::string s) {
+        switch (type) {
+            case INTEGER:
+                return "int";
+            case CHAR:
+                return "char";
+            case STRING:
+                return "char";
+            case VOID:
+                return "void";
+            case BOOL:
+                return "bool";
+            case DOUBLE:
+                return "double";
+            case FLOAT:
+                return "float";
+            case INTEGER_ARRAY:
+                return string_format("int %s[]", s.c_str());
+            case CHAR_ARRAY:
+                return string_format("char %s[]", s.c_str());
+            case STRING_ARRAY:
+                return string_format("char[] %s[]", s.c_str());
+            case BOOL_ARRAY:
+                return string_format("bool %s[]", s.c_str());
+            case DOUBLE_ARRAY:
+                return string_format("double %s[]", s.c_str());
+            case FLOAT_ARRAY:
+                return string_format("float %s[]", s.c_str());
+            default:
+                return "ERROR";
+        }
+    }
+
     bool is_array_type(type_t type) {
         switch (type) {
             case STRING:
@@ -380,5 +318,102 @@ private:
             default:
                 return false;
         }
+    }
+
+    type_t array_base_type(type_t type) {
+        switch (type) {
+            case INTEGER_ARRAY:
+                return INTEGER;
+            case CHAR_ARRAY:
+                return CHAR;
+            case STRING_ARRAY:
+                return STRING;
+            case BOOL_ARRAY:
+                return BOOL;
+            case DOUBLE_ARRAY:
+                return DOUBLE;
+            case FLOAT_ARRAY:
+                return FLOAT;
+        }
+
+        return UNDEFINED;
+    }
+
+    template<typename ... Args>
+    std::string string_format(const std::string &format, Args ... args) {
+        int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
+        if (size_s <= 0) { throw std::runtime_error("Error during formatting."); }
+        auto size = static_cast<size_t>( size_s );
+        std::unique_ptr<char[]> buf(new char[size]);
+        std::snprintf(buf.get(), size, format.c_str(), args ...);
+        return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+    }
+
+    void error(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
+               int lineNumber) {
+
+        if (tokenValue == "EOF") {
+            std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected '%s'", fileName.c_str(),
+                         lineNumber,
+                         expectedToken.c_str());
+        } else {
+            std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected '%s'", fileName.c_str(),
+                         lineNumber,
+                         tokenValue.c_str(), expectedToken.c_str());
+        }
+
+        exit(EXIT_FAILURE);
+    }
+
+    void error_no_quotes(const std::string &expectedToken, const std::string &tokenValue,
+                         const std::string &fileName,
+                         int lineNumber) {
+        if (tokenValue == "EOF") {
+            std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(),
+                         lineNumber,
+                         expectedToken.c_str());
+        } else {
+            std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected %s", fileName.c_str(),
+                         lineNumber,
+                         tokenValue.c_str(), expectedToken.c_str());
+        }
+
+        exit(EXIT_FAILURE);
+    }
+
+    token peak_next_token() {
+        return tokens[currentTokenIndex + 1];
+    }
+
+    token consume() {
+        token token;
+
+        if (currentTokenIndex != -1) {
+            token = tokens[currentTokenIndex];
+        }
+
+        currentTokenIndex += 1;
+
+        return token;
+    }
+
+    token rollback() {
+        token token;
+
+        if (currentTokenIndex != -1) {
+            token = tokens[currentTokenIndex];
+        }
+
+        currentTokenIndex -= 1;
+
+        return token;
+    }
+
+    bool match(token_type type) {
+        if (peak_next_token().type == type) {
+            return true;
+        }
+
+        return false;
     }
 };

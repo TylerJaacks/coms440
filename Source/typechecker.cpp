@@ -13,74 +13,6 @@
 
 #include <utility>
 
-void typechecker::error(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
-                        int lineNumber) {
-
-    if (tokenValue == "EOF") {
-        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected '%s'", fileName.c_str(),
-                     lineNumber,
-                     expectedToken.c_str());
-    } else {
-        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected '%s'", fileName.c_str(),
-                     lineNumber,
-                     tokenValue.c_str(), expectedToken.c_str());
-    }
-
-    exit(EXIT_FAILURE);
-}
-
-void typechecker::error_no_quotes(const std::string &expectedToken, const std::string &tokenValue,
-                                  const std::string &fileName,
-                                  int lineNumber) {
-    if (tokenValue == "EOF") {
-        std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(),
-                     lineNumber,
-                     expectedToken.c_str());
-    } else {
-        std::fprintf(stderr, "Parser error in file %s line %i near text %s\n\t Expected %s", fileName.c_str(),
-                     lineNumber,
-                     tokenValue.c_str(), expectedToken.c_str());
-    }
-
-    exit(EXIT_FAILURE);
-}
-
-token typechecker::peak_next_token() {
-    return tokens[currentTokenIndex + 1];
-}
-
-token typechecker::consume() {
-    token token;
-
-    if (currentTokenIndex != -1) {
-        token = tokens[currentTokenIndex];
-    }
-
-    currentTokenIndex += 1;
-
-    return token;
-}
-
-token typechecker::rollback() {
-    token token;
-
-    if (currentTokenIndex != -1) {
-        token = tokens[currentTokenIndex];
-    }
-
-    currentTokenIndex -= 1;
-
-    return token;
-}
-
-bool typechecker::match(token_type type) {
-    if (peak_next_token().type == type) {
-        return true;
-    }
-
-    return false;
-}
-
 // Program := Decl DecList | Decl
 void typechecker::Program() {
     if (peak_next_token().type == TOKEN_EOF)
@@ -168,35 +100,103 @@ void typechecker::VarDeclList(type_t type) {
 // <VarDeclId> := <Id> | <Id> '[' <NumberLiteral>']'
 void typechecker::VarDeclId(type_t type) {
     std::string name = peak_next_token().value;
+    std::string id = Id();
 
-    Id();
+    if (type == VOID) {
+        auto s1 = string_format("Type checking error in file %s line %i\n",
+                                peak_next_token().fileName.c_str(),
+                                peak_next_token().lineNumber);
+        auto s2 = string_format("\tVariable '%s' has type void\n", id.c_str());
+
+        type_error_list.push_back(s1);
+        type_error_list.push_back(s2);
+
+        return;
+    }
+
+    if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
+        switch (type) {
+            case INTEGER:
+                type = INTEGER_ARRAY;
+                break;
+            case DOUBLE:
+                type = DOUBLE_ARRAY;
+                break;
+            case FLOAT:
+                type = FLOAT_ARRAY;
+                break;
+            case CHAR:
+                type = CHAR_ARRAY;
+                break;
+            case BOOL:
+                type = BOOL_ARRAY;
+                break;
+            case STRING:
+                type = STRING_ARRAY;
+                break;
+        }
+    }
+
+    if (global) {
+        for (auto const &[key, val]: global_variables) {
+            if (key == id) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+
+                auto lineNumber = 0;
+
+                // FIXME: HACK TO GET LINE NUMBER. We would need to store the line number of a declared variable in the symbol table.
+                for (auto &token: tokens) {
+                    if (token.type == TOKEN_IDENTIFIER && token.value == id) {
+                        lineNumber = token.lineNumber;
+                        break;
+                    }
+                }
+                auto s2 = string_format("\tglobal %s %s duplicates global %s %s on line %i\n",
+                                        type_to_string(type).c_str(),
+                                        id.c_str(),
+                                        type_to_string(val).c_str(),
+                                        key.c_str(),
+                                        lineNumber);
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+            }
+        }
+    } else {
+        for (auto const &[key, val]: local_variables) {
+            if (key == id) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+
+                auto lineNumber = 0;
+
+                // FIXME: HACK TO GET LINE NUMBER. We would need to store the line number of a declared variable in the symbol table.
+                for (auto &token: tokens) {
+                    if (token.type == TOKEN_IDENTIFIER && token.value == id) {
+                        lineNumber = token.lineNumber;
+                        break;
+                    }
+                }
+
+                auto s2 = string_format("\tlocal %s %s duplicates local %s %s on line %i\n",
+                                        type_to_string(type).c_str(),
+                                        id.c_str(),
+                                        type_to_string(val).c_str(),
+                                        key.c_str(),
+                                        lineNumber);
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+            }
+        }
+    }
 
     if (global) {
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
-
-            type_t new_type;
-
-            switch (type) {
-                case INTEGER:
-                    new_type = INTEGER_ARRAY;
-                    break;
-                case CHAR:
-                    new_type = CHAR_ARRAY;
-                    break;
-                case STRING:
-                    new_type = CHAR_ARRAY;
-                    break;
-                case BOOL:
-                    new_type = BOOL_ARRAY;
-                    break;
-                case DOUBLE:
-                    new_type = DOUBLE_ARRAY;
-                    break;
-                case FLOAT:
-                    new_type = FLOAT_ARRAY;
-                    break;
-            }
 
             if (match(TOKEN_LITERAL_NUMBER)) {
                 std::string value = peak_next_token().value;
@@ -206,10 +206,16 @@ void typechecker::VarDeclId(type_t type) {
                 if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                     consume();
 
-                    global_variables[name] = new_type;
+                    global_variables[name] = type;
 
-                    printf("Line   %i: global %s [%s]\n", tokens[currentTokenIndex].lineNumber,
-                           type_to_string(type).c_str(), value.c_str(), tokens[currentTokenIndex].value.c_str());
+                    auto s1 = string_format("Line   %i: global %s %s[%s]\n",
+                                            tokens[currentTokenIndex].lineNumber,
+                                            type_to_string(array_base_type(type)).c_str(),
+                                            name.c_str(),
+                                            value.c_str(),
+                                            tokens[currentTokenIndex].value.c_str());
+
+                    type_decl_list.push_back(s1);
                 } else {
                     error("']'", peak_next_token().value, peak_next_token().fileName, peak_next_token().lineNumber);
                 }
@@ -220,33 +226,14 @@ void typechecker::VarDeclId(type_t type) {
         } else {
             global_variables[tokens[currentTokenIndex].value] = type;
 
-            printf("Line   %i: global %s %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type).c_str(),
-                   tokens[currentTokenIndex].value.c_str());
+            auto s1 = string_format("Line   %i: global %s %s\n",
+                                    tokens[currentTokenIndex].lineNumber,
+                                    type_to_string(type).c_str(),
+                                    tokens[currentTokenIndex].value.c_str());
+
+            type_decl_list.push_back(s1);
         }
     } else {
-        type_t new_type;
-
-        switch (type) {
-            case INTEGER:
-                new_type = INTEGER_ARRAY;
-                break;
-            case CHAR:
-                new_type = CHAR_ARRAY;
-                break;
-            case STRING:
-                new_type = CHAR_ARRAY;
-                break;
-            case BOOL:
-                new_type = BOOL_ARRAY;
-                break;
-            case DOUBLE:
-                new_type = DOUBLE_ARRAY;
-                break;
-            case FLOAT:
-                new_type = FLOAT_ARRAY;
-                break;
-        }
-
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
 
@@ -258,10 +245,16 @@ void typechecker::VarDeclId(type_t type) {
                 if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                     consume();
 
-                    local_variables[name] = new_type;
+                    local_variables[name] = type;
 
-                    printf("    Line   %i: local %s [%s]\n", tokens[currentTokenIndex].lineNumber,
-                           type_to_string(type).c_str(), value.c_str(), tokens[currentTokenIndex].value.c_str());
+                    auto s1 = string_format("    Line   %i: local %s %s[%s]\n",
+                                            tokens[currentTokenIndex].lineNumber,
+                                            type_to_string(array_base_type(type)).c_str(),
+                                            name.c_str(),
+                                            value.c_str()
+                    );
+
+                    type_decl_list.push_back(s1);
                 } else {
                     error("']'", peak_next_token().value, peak_next_token().fileName, peak_next_token().lineNumber);
                 }
@@ -272,8 +265,12 @@ void typechecker::VarDeclId(type_t type) {
         } else {
             local_variables[name] = type;
 
-            printf("    Line   %i: local %s %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type).c_str(),
-                   tokens[currentTokenIndex].value.c_str());
+            auto s1 = string_format("    Line   %i: local %s %s\n",
+                                    tokens[currentTokenIndex].lineNumber,
+                                    type_to_string(type).c_str(),
+                                    tokens[currentTokenIndex].value.c_str());
+
+            type_decl_list.push_back(s1);
         }
     }
 }
@@ -297,11 +294,30 @@ void typechecker::FuncDecl() {
 
     function_t function = {.name = id, .return_type = type, .parameters = *func_params};
 
+    std::vector<std::string> scene_list;
+
+    for (auto &func_param: *func_params) {
+        if (std::find(scene_list.begin(), scene_list.end(), func_param.name) != scene_list.end()) {
+            auto s1 = string_format("Type checking error in file %s line %i\n",
+                                    tokens[currentTokenIndex].fileName.c_str(),
+                                    tokens[currentTokenIndex].lineNumber);
+            auto s2 = string_format("\tparameter %s a duplicates parameter %s %s on line %i\n",
+                                    type_to_string(func_param.type).c_str(),
+                                    type_to_string(func_param.type).c_str(),
+                                    func_param.name.c_str(),
+                                    tokens[currentTokenIndex].lineNumber);
+
+            type_error_list.push_back(s1);
+            type_error_list.push_back(s2);
+
+            return;
+        } else {
+            scene_list.push_back(func_param.name);
+        }
+    }
     for (auto p: function.parameters) {
         local_variables[p.name] = p.type;
     }
-
-    functions.push_back(function);
 
     if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
         error("(",
@@ -311,23 +327,77 @@ void typechecker::FuncDecl() {
     } else {
         consume();
     }
-
+    // Function Prototype
     if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
         consume();
 
+        // Function isn't already defined.
+        bool b = false;
+
+        if (!b) {
+            functions.push_back(function);
+        } else {
+            auto error1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+
+            type_error_list.push_back(error1);
+        }
+
+        local_variables.clear();
+
         return;
     } else if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACE) {
-        printf("Line   %i: function %s %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type).c_str(),
-               id.c_str());
+        // Function isn't already defined.
+        auto decl2 = string_format("Line   %i: function %s %s\n", tokens[currentTokenIndex].lineNumber,
+                                   type_to_string(type).c_str(),
+                                   id.c_str());
+
+        bool b = false;
+
+        if (!b) {
+            functions.push_back(function);
+            type_decl_list.push_back(decl2);
+        } else {
+            auto error2 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+
+            type_error_list.push_back(error2);
+        }
 
         if (!function.parameters.empty()) {
             for (int i = 0; i <= function.parameters.size() - 1; i++) {
-                fprintf(stdout, "    Line   %i: parameter %s %s\n", tokens[currentTokenIndex].lineNumber,
-                        type_to_string(function.parameters[i].type).c_str(), function.parameters[i].name.c_str());
+                std::string s2 = "";
+
+                if (!is_array_type(function.parameters[i].type)) {
+                    s2 = string_format("    Line   %i: parameter %s %s\n",
+                                       tokens[currentTokenIndex].lineNumber,
+                                       type_to_string(function.parameters[i].type).c_str(),
+                                       function.parameters[i].name.c_str());
+                } else {
+                    s2 = string_format("    Line   %i: parameter %s\n",
+                                       tokens[currentTokenIndex].lineNumber,
+                                       type_to_string2(function.parameters[i].type,
+                                                       function.parameters[i].name.c_str()).c_str());
+                }
+
+
+                type_decl_list.push_back(s2);
             }
         }
 
+        is_in_function = true;
+        function_name = id;
+        function_return_type = type;
+        found_return_statement = false;
+
         Block();
+
+        is_in_function = false;
+        function_name = "";
+        function_return_type = type_t::UNDEFINED;
+        found_return_statement = false;
 
         return;
     } else {
@@ -370,8 +440,7 @@ void typechecker::FuncDeclParamList(std::vector<function_parameter_t> *function_
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                 consume();
-            }
-            else {
+            } else {
                 error("']'", peak_next_token().value, peak_next_token().fileName, peak_next_token().lineNumber);
             }
         }
@@ -473,27 +542,48 @@ void typechecker::Stmt() {
 
         // <Stmt> := 'return' Expr ';' | 'return' ';'
     else if (peak_next_token().type == TOKEN_KEYWORD_RETURN) {
-        consume();
-
-        if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
+        if (is_in_function && !function_name.empty() && function_return_type != type_t::UNDEFINED) {
             consume();
+
+            if (function_return_type == type_t::VOID) {
+                if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
+                    throw std::runtime_error("Expected ';' after 'return' in function " + function_name);
+                }
+            } else {
+                if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
+                    auto s1 = string_format("Type checking error in file %s line %i\n",
+                                            function_name.c_str(),
+                                            peak_next_token().lineNumber);
+                    auto s2 = string_format("\tReturn type mismatch: was %s, expected %s\n",
+                                            type_to_string2(function_return_type, "").c_str(),
+                                            type_to_string2(type_t::VOID, "").c_str());
+
+                    type_error_list.push_back(s1);
+                    type_error_list.push_back(s2);
+
+                    return;
+                }
+
+                type_t type = Expr();
+
+                if (type != function_return_type) {
+                    throw std::runtime_error("Return type mismatch in function " + function_name);
+                }
+            }
+
+            if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
+                error(";",
+                      peak_next_token().value,
+                      peak_next_token().fileName,
+                      peak_next_token().lineNumber);
+            }
+
+            consume();
+
+            found_return_statement = true;
 
             return;
         }
-
-        // TODO: Get the Type of this return.
-        type_t type = Expr();
-
-        if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
-            error(";",
-                  peak_next_token().value,
-                  peak_next_token().fileName,
-                  peak_next_token().lineNumber);
-        }
-
-        consume();
-
-        return;
     }
 
         // <IfStmt> := 'if' '(' Expr ')' <Block>
@@ -693,11 +783,16 @@ void typechecker::Stmt() {
 
         if (type != UNDEFINED) {
             if (peak_next_token().lineNumber <= 9) {
-                fprintf(stdout, "    Line   %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber,
-                        type_to_string(type).c_str());
+                auto s1 = string_format("    Line   %i: expression has type %s\n",
+                                        tokens[currentTokenIndex].lineNumber,
+                                        type_to_string(type).c_str());
+
+                type_decl_list.push_back(s1);
             } else {
-                fprintf(stdout, "    Line  %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber,
-                        type_to_string(type).c_str());
+                auto s1 = string_format("    Line  %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber,
+                                        type_to_string(type).c_str());
+
+                type_decl_list.push_back(s1);
             }
         }
 
@@ -785,6 +880,7 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
             return type1;
         }
 
+        std::string op = peak_next_token().value;
 
         int _precedence = precedenceMap[peak_next_token().value];
 
@@ -802,34 +898,45 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
 
         type_t type2 = ComputeExpression(nextPrecedenceLevel);
 
-        if (type1 != type2) {
-            fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                    tokens[currentTokenIndex].lineNumber);
-            fprintf(stdout, "\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(), token.value[0],
-                    type_to_string(type2).c_str());
-        } else if (is_array_type(type1) && is_array_type(type2)) {
-            fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                    tokens[currentTokenIndex].lineNumber);
-            fprintf(stdout, "\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(), token.value[0],
-                    type_to_string(type2).c_str());
-        } else {
-//            if (peak_next_token().lineNumber <= 9) {
-//                fprintf(stdout, "    Line   %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type1).c_str());
-//            }
-//            else {
-//                fprintf(stdout, "    Line  %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type1).c_str());
-//            }
+        if (type1 == VOID && type2 == VOID) {
+            auto s1 = string_format("\"Type checking error in file %s line %i\n",
+                                    token.fileName.c_str(),
+                                    token.lineNumber);
+            auto s2 = string_format("\tInvalid operand types %s == %s\n",
+                                    type_to_string(type1).c_str(),
+                                    type_to_string(type2).c_str());
+
+            type_error_list.push_back(s1);
+            type_error_list.push_back(s2);
         }
 
-        printf("");
-    }
+        if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=" || op == "&&" ||
+            op == "||") {
+            return CHAR;
+        } else {
+            if (type1 != type2) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(),
+                                        token.value[0],
+                                        type_to_string(type2).c_str());
 
-//    if (peak_next_token().lineNumber <= 9) {
-//        fprintf(stdout, "    Line   %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type1).c_str());
-//    }
-//    else {
-//        fprintf(stdout, "    Line  %i: expression has type %s\n", tokens[currentTokenIndex].lineNumber, type_to_string(type1).c_str());
-//    }
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+            } else if (is_array_type(type1) && is_array_type(type2)) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(),
+                                        token.value[0],
+                                        type_to_string(type2).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+            }
+        }
+    }
 
     return type1;
 }
@@ -857,13 +964,46 @@ typechecker::type_t typechecker::ComputeTerm() {
     }
 
     // Handle decrement and increment operators.
-    if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+    if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT
+        || peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+        std::string operator_str;
+
+        if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT) {
+            operator_str = "++";
+        } else if (peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+            operator_str = "--";
+        }
+
         consume();
 
         if (peak_next_token().type == TOKEN_IDENTIFIER) {
             std::string name = peak_next_token().value;
 
             consume();
+
+            type_t type;
+
+            if (global_variables[name]) {
+                type = global_variables[name];
+            } else if (local_variables[name]) {
+                type = local_variables[name];
+            }
+
+            if (is_array_type(type)) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tOperator %s needs numeric operand; type was %s\n",
+                                        operator_str.c_str(),
+                                        type_to_string(type).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+
+                return {};
+            }
+
+            return type;
 
             if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
                 || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
@@ -919,14 +1059,6 @@ typechecker::type_t typechecker::ComputeTerm() {
 
                             break;
                         }
-                    }
-
-                    // Check to see if the same number of parameters are passed.
-                    // TODO: Change Error message.
-                    if (expectedTypes.size() != types.size()) {
-                        fprintf(stderr, "TYPE MISMATCH: Expected %lu arguments, got %lu\n", expectedTypes.size(),
-                                types.size());
-                        exit(-1);
                     }
 
                     return expectedReturnType;
@@ -1059,6 +1191,37 @@ typechecker::type_t typechecker::ComputeTerm() {
         type_t type = Type();
         std::string name = Id();
 
+        if (local_variables[name]) {
+            int lineNumber;
+
+            // FIXME: This is a hack.
+            for (auto &token: tokens) {
+                if (token.type == TOKEN_IDENTIFIER && token.value == name) {
+                    lineNumber = token.lineNumber;
+
+                    break;
+                }
+            }
+
+            type_t t1 = local_variables[name];
+            type_t t2 = type;
+
+            auto s1 = string_format("Type checking error in file %s line %i\n",
+                                    peak_next_token().fileName.c_str(),
+                                    peak_next_token().lineNumber);
+            auto s2 = string_format("\tlocal %s %s duplicates local %s %s on line %i\n",
+                                    type_to_string(t1).c_str(),
+                                    name.c_str(),
+                                    type_to_string(t2).c_str(),
+                                    name.c_str(),
+                                    lineNumber);
+
+            type_error_list.push_back(s1);
+            type_error_list.push_back(s2);
+
+            return type;
+        }
+
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
 
@@ -1107,50 +1270,58 @@ typechecker::type_t typechecker::ComputeTerm() {
                 for (auto &function: functions) {
                     if (function.name == name) {
                         if (function.parameters.size() != types.size()) {
-                            printf("Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                                   tokens[currentTokenIndex].lineNumber);
+                            auto s1 = string_format("Type checking error in file %s line %i\n",
+                                                    tokens[currentTokenIndex].fileName.c_str(),
+                                                    tokens[currentTokenIndex].lineNumber);
+
+                            type_error_list.push_back(s1);
 
                             std::string functionName = name + "(";
 
                             for (int i = 0; i < function.parameters.size(); i++) {
-                                functionName += type_to_string(function.parameters[i].type) + " ";
-                                functionName += function.parameters[i].name;
+                                functionName += type_to_string(function.parameters[i].type);
 
                                 if (i != function.parameters.size() - 1) {
-                                    functionName += ",";
+                                    functionName += ", ";
                                 }
-
-                                functionName += ")";
-
-                                printf("\tParameter mismatch in call to \n", functionName.c_str());
-                                printf("\tExpected %i, received %i parameters\n", function.parameters.size(), types.size());
-
-                                return {};
                             }
-                        }
 
-                        else if (function.parameters.size() == types.size()) {
+                            functionName += ")";
+
+                            auto s2 = string_format("\tParameter mismatch in call to %s \n", functionName.c_str());
+                            auto s3 = string_format("\tExpected %i, received %i parameters\n",
+                                                    function.parameters.size(), types.size());
+
+                            type_error_list.push_back(s2);
+                            type_error_list.push_back(s3);
+
+                            return {};
+                        } else if (function.parameters.size() == types.size()) {
                             std::string functionName = name + "(";
 
                             for (int i = 0; i < function.parameters.size(); i++) {
-                                functionName += type_to_string(function.parameters[i].type) + " ";
-                                functionName += function.parameters[i].name;
+                                functionName += type_to_string(function.parameters[i].type);
 
                                 if (i != function.parameters.size() - 1) {
                                     functionName += ",";
                                 }
-
-                                functionName += ")";
                             }
+
+                            functionName += ")";
 
                             for (int i = 0; i < types.size(); i++) {
                                 if (function.parameters[i].type != types[i]) {
-                                    printf("Type checking error in file %s line %i\n",
-                                           tokens[currentTokenIndex].fileName.c_str(),
-                                           tokens[currentTokenIndex].lineNumber);
-                                    printf("\tParameter mismatch in call to %s\n", functionName.c_str());
-                                    printf("\tPassed parameter #%i has type %s\n", i + 1,
-                                           type_to_string(types[i]).c_str());
+                                    auto s1 = string_format("Type checking error in file %s line %i\n",
+                                                            tokens[currentTokenIndex].fileName.c_str(),
+                                                            tokens[currentTokenIndex].lineNumber);
+                                    auto s2 = string_format("\tParameter mismatch in call to %s\n",
+                                                            functionName.c_str());
+                                    auto s3 = string_format("\tPassed parameter #%i has type %s\n", i + 1,
+                                                            type_to_string(types[i]).c_str());
+
+                                    type_error_list.push_back(s1);
+                                    type_error_list.push_back(s2);
+                                    type_error_list.push_back(s3);
 
                                     return {};
                                 }
@@ -1161,16 +1332,22 @@ typechecker::type_t typechecker::ComputeTerm() {
                     }
                 }
 
-                error("function not found", name, peak_next_token().fileName, peak_next_token().lineNumber);
-            }
-            else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tUnknown function '%s'", name.c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+
+                return {};
+            } else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
                 error_no_quotes("',' or ')'",
                                 peak_next_token().value,
                                 peak_next_token().fileName,
                                 peak_next_token().lineNumber);
             }
 
-            // TODO: If we are calling a function with a return type, and the next token is a binop then we can continue.
             if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON
                 || peak_next_token().type == TOKEN_SYMBOL_PLUS_SIGN
                 || peak_next_token().type == TOKEN_SYMBOL_MINUS_SIGN
@@ -1191,14 +1368,6 @@ typechecker::type_t typechecker::ComputeTerm() {
                     }
                 }
 
-                // TODO: Related to question 3 above.
-                if (!function_found) {
-//                    error_no_quotes("No valid function found!",
-//                          name,
-//                          peak_next_token().fileName,
-//                          peak_next_token().lineNumber);
-                }
-
                 return return_type;
             }
         }
@@ -1214,109 +1383,173 @@ typechecker::type_t typechecker::ComputeTerm() {
                       peak_next_token().lineNumber);
             }
 
-            // TODO: Type check this.
             type_t type = Expr();
 
-            type_t return_type;
+            if (type != type_t::INTEGER) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\t\tArray index should be integer, was %s\n",
+                                        type_to_string(type).c_str());
 
-            if (type == INTEGER) {
-                if (global_variables[name]) {
-                    switch (global_variables[name]) {
-                        case STRING:
-                            return_type = STRING;
-                            break;
-                        case INTEGER_ARRAY:
-                            return_type = INTEGER;
-                            break;
-                        case CHAR_ARRAY:
-                            return_type = CHAR;
-                            break;
-                        case STRING_ARRAY:
-                            return_type = STRING;
-                            break;
-                        case BOOL_ARRAY:
-                            return_type = BOOL;
-                            break;
-                        case DOUBLE_ARRAY:
-                            return_type = DOUBLE;
-                            break;
-                        case FLOAT_ARRAY:
-                            return_type = FLOAT;
-                            break;
-                    }
-                } else {
-                    global_variables[name] = INTEGER;
-                    return INTEGER;
-                }
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+
+                return {};
             }
 
-            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+            if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
                 consume();
 
-                return return_type;
-            } else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_BRACKET) {
-                error("]",
-                      peak_next_token().value,
-                      peak_next_token().fileName,
-                      peak_next_token().lineNumber);
-            }
-
-            if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
-                peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
-                consume();
-
-                if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
-                    || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
-                    || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
-                    || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
-                    || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
-                    || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
-                    error(";",
-                          peak_next_token().value,
-                          peak_next_token().fileName,
-                          peak_next_token().lineNumber);
-                }
-
-                if (global) {
-                    return global_variables[name];
-                } else {
-                    return local_variables[name];
+                if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+                    consume();
                 }
             }
 
-            if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
-                || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
-                || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
-                || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
-                || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
-                || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
-                consume();
+            for (auto &variable: global_variables) {
+                if (variable.first == name && variable.second != type_t::UNDEFINED) {
+                    if (!is_array_type(variable.second)) {
+                        auto s1 = string_format("Type checking error in file %s line %i\n",
+                                                tokens[currentTokenIndex].fileName.c_str(),
+                                                tokens[currentTokenIndex].lineNumber);
+                        auto s2 = string_format("\t\tVariable '%s' is not an array\n", name.c_str());
 
-                type_t type = Expr();
+                        type_error_list.push_back(s1);
+                        type_error_list.push_back(s2);
 
-                // TODO: Fix the Type checking.
-                if (global) {
-                    if (global_variables[name]) {
-                        return global_variables[name];
-                    } else {
-                        global_variables[name] = type;
-                        return type;
+                        return {};
                     }
-                } else {
-                    if (local_variables[name]) {
-                        return local_variables[name];
-                    } else {
-                        local_variables[name] = type;
-                        return type;
-                    }
+
+                    return array_base_type(variable.second);
                 }
             }
+
+            for (auto &variable: local_variables) {
+                if (variable.first == name && variable.second != type_t::UNDEFINED) {
+                    if (!is_array_type(variable.second)) {
+                        auto s1 = string_format("Type checking error in file %s line %i\n",
+                                                tokens[currentTokenIndex].fileName.c_str(),
+                                                tokens[currentTokenIndex].lineNumber);
+                        auto s2 = string_format("\t\tVariable '%s' is not an array\n", name.c_str());
+
+                        type_error_list.push_back(s1);
+                        type_error_list.push_back(s2);
+
+                        return {};
+                    }
+
+                    return array_base_type(variable.second);
+                }
+            }
+
+//            for (auto &variable: local_variables) {
+//                if (variable.first == name && variable.second != UNDEFINED) {
+//                    type_t type1 = variable.second;
+//
+//                    if (!is_array_type(type1)) {
+//                        auto s1 = string_format("Type checking error in file %s line %i\n",
+//                                                tokens[currentTokenIndex].fileName.c_str(),
+//                                                tokens[currentTokenIndex].lineNumber);
+//                        auto s2 = string_format("\t\tVariable '%s' is not an array\n", name.c_str());
+//
+//                        type_error_list.push_back(s1);
+//                        type_error_list.push_back(s2);
+//                    }
+//                }
+//            }
+//
+//            for (auto &variable: global_variables) {
+//                if (variable.first == name && variable.second != UNDEFINED) {
+//                    type_t type1 = variable.second;
+//
+//                    if (!is_array_type(type1)) {
+//                        auto s1 = string_format("Type checking error in file %s line %i\n",
+//                                                tokens[currentTokenIndex].fileName.c_str(),
+//                                                tokens[currentTokenIndex].lineNumber);
+//                        auto s2 = string_format("\t\tVariable '%s' is not an array\n", name.c_str());
+//
+//                        type_error_list.push_back(s1);
+//                        type_error_list.push_back(s2);
+//                    }
+//                }
+//            }
+//
+//            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+//                consume();
+//
+//                return return_type;
+//            } else if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_BRACKET) {
+//                error("]",
+//                      peak_next_token().value,
+//                      peak_next_token().fileName,
+//                      peak_next_token().lineNumber);
+//            }
+//
+//            if (peak_next_token().type == TOKEN_SYMBOL_EQUAL_SIGN
+//                || peak_next_token().type == TOKEN_SYMBOL_PLUS_ASSIGNMENT
+//                || peak_next_token().type == TOKEN_SYMBOL_MINUS_ASSIGNMENT
+//                || peak_next_token().type == TOKEN_SYMBOL_MULT_ASSIGNMENT
+//                || peak_next_token().type == TOKEN_SYMBOL_DIVIDE_ASSIGNMENT
+//                || peak_next_token().type == TOKEN_SYMBOL_MODULO_ASSIGNMENT) {
+//                consume();
+//
+//                type_t type = Expr();
+//
+//                // TODO: Fix the Type checking.
+//                if (global) {
+//                    if (global_variables[name]) {
+//                        return global_variables[name];
+//                    } else {
+//                        global_variables[name] = type;
+//                        return type;
+//                    }
+//                } else {
+//                    if (local_variables[name]) {
+//                        return local_variables[name];
+//                    } else {
+//                        local_variables[name] = type;
+//                        return type;
+//                    }
+//                }
+//            }
         }
 
         // An l-value with increment or decrement.
         if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
             peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+            std::string operator_str;
+
+            if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT) {
+                operator_str = "++";
+            } else if (peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
+                operator_str = "--";
+            }
+
             consume();
+
+            type_t type;
+
+            if (global_variables[name]) {
+                type = global_variables[name];
+            } else if (local_variables[name]) {
+                type = local_variables[name];
+            }
+
+            if (is_array_type(type)) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tOperator %s needs numeric operand; type was %s\n",
+                                        operator_str.c_str(),
+                                        type_to_string(type).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+
+                return {};
+            }
+
+            return type;
 
             if (global) {
                 return global_variables[name];
@@ -1347,26 +1580,39 @@ typechecker::type_t typechecker::ComputeTerm() {
             type_t type = Expr();
 
             if (is_array_type(type1) && is_array_type(type)) {
-                fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                        tokens[currentTokenIndex].lineNumber);
-                fprintf(stdout, "\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(), token.value[0],
-                        type_to_string(type).c_str());
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(),
+                                        token.value[0],
+                                        type_to_string(type).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
 
                 return UNDEFINED;
-            }
-            else if (is_array_type(type1)) {
-                fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                        tokens[currentTokenIndex].lineNumber);
-                fprintf(stdout, "\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(), token.value[0],
-                        type_to_string(type).c_str());
+            } else if (is_array_type(type1)) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(),
+                                        token.value[0],
+                                        type_to_string(type).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
 
                 return UNDEFINED;
-            }
-            else if (is_array_type(type)) {
-                fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                        tokens[currentTokenIndex].lineNumber);
-                fprintf(stdout, "\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(), token.value[0],
-                        type_to_string(type).c_str());
+            } else if (is_array_type(type)) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+                auto s2 = string_format("\tInvalid operand types %s %c %s\n", type_to_string(type1).c_str(),
+                                        token.value[0],
+                                        type_to_string(type).c_str());
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
 
                 return UNDEFINED;
             }
@@ -1388,12 +1634,20 @@ typechecker::type_t typechecker::ComputeTerm() {
             }
         }
 
-        if (local_variables[name] && global_variables[name]) {
-            throw std::runtime_error("Variable " + name + " is both local and global!");
-        } else if (local_variables[name]) {
+        if (local_variables[name]) {
             return local_variables[name];
         } else if (global_variables[name]) {
             return global_variables[name];
+        } else if (!local_variables[name]) {
+            auto s1 = string_format("Type checking error in file %s line %i\n",
+                                    tokens[currentTokenIndex].fileName.c_str(),
+                                    tokens[currentTokenIndex].lineNumber);
+            auto s2 = string_format("\tUnknown variable '%s'\n", name.c_str());
+
+            type_error_list.push_back(s1);
+            type_error_list.push_back(s2);
+
+            return {};
         }
     }
 
@@ -1441,16 +1695,25 @@ typechecker::type_t typechecker::ComputeTerm() {
                 type_t type = Expr();
 
                 if (is_array_type(type)) {
-                    fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                            tokens[currentTokenIndex].lineNumber);
-                    fprintf(stdout, "\tCan't cast from %s to %s\n", type_to_string(type).c_str(), type_to_string(cast_type).c_str());
+                    auto s1 = string_format("Type checking error in file %s line %i\n",
+                                            tokens[currentTokenIndex].fileName.c_str(),
+                                            tokens[currentTokenIndex].lineNumber);
+                    auto s2 = string_format("\tCan't cast from %s to %s\n", type_to_string(type).c_str(),
+                                            type_to_string(cast_type).c_str());
+
+                    type_error_list.push_back(s1);
+                    type_error_list.push_back(s2);
 
                     return {};
-                }
-                else if (type == VOID) {
-                    fprintf(stdout, "Type checking error in file %s line %i\n", tokens[currentTokenIndex].fileName.c_str(),
-                            tokens[currentTokenIndex].lineNumber);
-                    fprintf(stdout, "\tCan't cast from %s to %s\n", type_to_string(type).c_str(), type_to_string(cast_type).c_str());
+                } else if (type == VOID) {
+                    auto s1 = string_format("Type checking error in file %s line %i\n",
+                                            tokens[currentTokenIndex].fileName.c_str(),
+                                            tokens[currentTokenIndex].lineNumber);
+                    auto s2 = string_format("\tCan't cast from %s to %s\n", type_to_string(type).c_str(),
+                                            type_to_string(cast_type).c_str());
+
+                    type_error_list.push_back(s1);
+                    type_error_list.push_back(s2);
 
                     return {};
                 }
