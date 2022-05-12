@@ -1,4 +1,6 @@
 #include <string>
+#include <iostream>
+
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
@@ -67,15 +69,13 @@ void handle_arguments(struct arguments *arguments) {
         print_usage_statements();
     }
 
-    if      (arguments->mode == '0') {
+    if (arguments->mode == '0') {
         if (strcmp(arguments->output_path.c_str(), "a.out") == 0) {
             print_about_statements();
-        }
-        else if (strcmp(arguments->output_path.c_str(), "a.out") != 0) {
+        } else if (strcmp(arguments->output_path.c_str(), "a.out") != 0) {
             save_about_statements(arguments->output_path.c_str());
         }
-    }
-    else if (arguments->mode == '1') {
+    } else if (arguments->mode == '1') {
         char *buffer = nullptr;
         long length;
 
@@ -85,7 +85,7 @@ void handle_arguments(struct arguments *arguments) {
             fseek(f, 0, SEEK_END);
             length = ftell(f);
             fseek(f, 0, SEEK_SET);
-            buffer = (char*) malloc(length);
+            buffer = (char *) malloc(length);
             if (buffer) {
                 fread(buffer, 1, length, f);
             }
@@ -99,12 +99,12 @@ void handle_arguments(struct arguments *arguments) {
                 std::vector<token> tokens = program_lexer.getTokens();
 
                 for (int i = 0; i < tokens.size() - 1; i++) {
-                    fprintf(stdout, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(), tokens[i].lineNumber, tokens[i].type, tokens[i].value.c_str());
+                    fprintf(stdout, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(),
+                            tokens[i].lineNumber, tokens[i].type, tokens[i].value.c_str());
                 }
 
                 exit(SUCCESS);
-            }
-            else if (arguments->output_path != "a.out") {
+            } else if (arguments->output_path != "a.out") {
                 lexer program_lexer = lexer(arguments->input_path, buffer);
 
                 std::vector<token> tokens = program_lexer.getTokens();
@@ -112,7 +112,8 @@ void handle_arguments(struct arguments *arguments) {
                 FILE *f = fopen(arguments->output_path.c_str(), "w+");
 
                 for (int i = 0; i < tokens.size() - 1; i++) {
-                    fprintf(f, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(), tokens[i].lineNumber, tokens[i].type, tokens[i].value.c_str());
+                    fprintf(f, "File %s Line %i Token %i Text %s\n", tokens[i].fileName.c_str(), tokens[i].lineNumber,
+                            tokens[i].type, tokens[i].value.c_str());
                 }
 
                 fclose(f);
@@ -120,8 +121,7 @@ void handle_arguments(struct arguments *arguments) {
                 exit(SUCCESS);
             }
         }
-    }
-    else if (arguments->mode == '3') {
+    } else if (arguments->mode == '3') {
         char *buffer = nullptr;
         long length;
 
@@ -131,7 +131,7 @@ void handle_arguments(struct arguments *arguments) {
             fseek(f, 0, SEEK_END);
             length = ftell(f);
             fseek(f, 0, SEEK_SET);
-            buffer = (char*) malloc(length);
+            buffer = (char *) malloc(length);
             if (buffer) {
                 fread(buffer, 1, length, f);
             }
@@ -151,8 +151,7 @@ void handle_arguments(struct arguments *arguments) {
                 fprintf(stdout, "File %s is syntactically correct.", arguments->input_path.c_str());
 
                 exit(SUCCESS);
-            }
-            else if (arguments->output_path != "a.out") {
+            } else if (arguments->output_path != "a.out") {
                 lexer program_lexer = lexer(arguments->input_path, buffer);
 
                 std::vector<token> tokens = program_lexer.getTokens();
@@ -168,8 +167,7 @@ void handle_arguments(struct arguments *arguments) {
                 exit(SUCCESS);
             }
         }
-    }
-    else if (arguments->mode == '4') {
+    } else if (arguments->mode == '4') {
         char *buffer = nullptr;
         long length;
 
@@ -179,7 +177,7 @@ void handle_arguments(struct arguments *arguments) {
             fseek(f, 0, SEEK_END);
             length = ftell(f);
             fseek(f, 0, SEEK_SET);
-            buffer = (char*) malloc(length);
+            buffer = (char *) malloc(length);
             if (buffer) {
                 fread(buffer, 1, length, f);
             }
@@ -188,28 +186,30 @@ void handle_arguments(struct arguments *arguments) {
 
         if (buffer) {
             if (arguments->output_path == "a.out") {
-                lexer program_lexer = lexer(arguments->input_path, buffer);
+                // lexer program_lexer = lexer(arguments->input_path, buffer);
+
+                lexer program_lexer = lexer(arguments->input_path,
+                                            "int A[3]; int foo() { A[0]; }");
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
                 typechecker program_typechecker(tokens);
 
-                program_typechecker.Program();
+                std::unique_ptr<ASTNode> node = program_typechecker.Program();
+
 
                 if (program_typechecker.type_error_list.empty()) {
-                    for (auto & i : program_typechecker.type_decl_list) {
+                    for (auto &i: program_typechecker.type_decl_list) {
                         fprintf(stdout, "%s", i.c_str());
                     }
-                }
-                else if (!program_typechecker.type_error_list.empty()) {
-                    for (auto & i : program_typechecker.type_error_list) {
+                } else if (!program_typechecker.type_error_list.empty()) {
+                    for (auto &i: program_typechecker.type_error_list) {
                         fprintf(stderr, "%s", i.c_str());
                     }
                 }
 
                 exit(SUCCESS);
-            }
-            else if (arguments->output_path != "a.out") {
+            } else if (arguments->output_path != "a.out") {
                 lexer program_lexer = lexer(arguments->input_path, buffer);
 
                 std::vector<token> tokens = program_lexer.getTokens();
@@ -224,8 +224,7 @@ void handle_arguments(struct arguments *arguments) {
                     for (int i = 0; i < program_typechecker.type_decl_list.size() - 1; i++) {
                         fprintf(fileOutput, "%s", program_typechecker.type_decl_list[i].c_str());
                     }
-                }
-                else if (!program_typechecker.type_error_list.empty()) {
+                } else if (!program_typechecker.type_error_list.empty()) {
                     for (int i = 0; i < program_typechecker.type_error_list.size() - 1; i++) {
                         fprintf(fileOutput, "%s", program_typechecker.type_error_list[i].c_str());
                     }
@@ -248,6 +247,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
 }
+
 
 int main(int argc, char *argv[]) {
     struct arguments arguments = {-1, "a.out", ""};

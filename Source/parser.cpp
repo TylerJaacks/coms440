@@ -29,7 +29,8 @@ void parser::error(const std::string &expectedToken, const std::string &tokenVal
     exit(EXIT_FAILURE);
 }
 
-void parser::error_no_quotes(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
+void
+parser::error_no_quotes(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
                         int lineNumber) {
     if (tokenValue == "EOF") {
         std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(),
@@ -621,13 +622,13 @@ void parser::FuncCallParamList(std::string funcName, std::vector<type_t> *types)
     }
 }
 
-parser::type_t parser::Expr() {
+type_t parser::Expr() {
     type_t returnType = ComputeExpression(1);
 
     return returnType;
 }
 
-parser::type_t parser::ComputeExpression(int precedence) {
+type_t parser::ComputeExpression(int precedence) {
     type_t type = ComputeTerm();
 
     int nextPrecedenceLevel;
@@ -673,7 +674,7 @@ parser::type_t parser::ComputeExpression(int precedence) {
     return type;
 }
 
-parser::type_t parser::ComputeTerm() {
+type_t parser::ComputeTerm() {
     // Handle literals.
     switch (peak_next_token().type) {
         case TOKEN_LITERAL_NUMBER:
@@ -1230,7 +1231,7 @@ parser::type_t parser::ComputeTerm() {
 }
 
 // <Type> := int | double | char | void | string
-parser::type_t parser::Type() {
+type_t parser::Type() {
     type_t type = type_t::UNDEFINED;
 
     if (peak_next_token().type == TOKEN_TYPE) {

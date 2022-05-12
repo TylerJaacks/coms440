@@ -1,7 +1,9 @@
 #include <map>
 #include <vector>
 
+#include "AST.h"
 #include "token.h"
+#include "types.h"
 
 class typechecker {
 public:
@@ -9,23 +11,6 @@ public:
         LEFT_TO_RIGHT,
         RIGHT_TO_LEFT
     } associativity_t;
-
-    typedef enum {
-        UNDEFINED = 0,
-        VOID = 1,
-        INTEGER = 2,
-        CHAR = 3,
-        DOUBLE = 4,
-        STRING = 5,
-        FLOAT = 6,
-        BOOL = 7,
-        INTEGER_ARRAY = 8,
-        CHAR_ARRAY = 9,
-        DOUBLE_ARRAY = 10,
-        STRING_ARRAY = 11,
-        FLOAT_ARRAY = 12,
-        BOOL_ARRAY = 13,
-    } type_t;
 
     typedef struct {
         type_t type;
@@ -198,42 +183,42 @@ public:
     }
 
 public:
-    void Program();
+    std::unique_ptr<ASTNode> Program();
 
-    void Decl();
+    std::unique_ptr<ASTNode> Decl();
 
-    void DeclList();
+    std::unique_ptr<ASTNode> DeclList();
 
-    void VarDecl();
+    std::unique_ptr<ASTNode> VarDecl();
 
-    void VarDeclList(type_t type);
+    std::vector<std::string> VarDeclList(type_t type);
 
-    void VarDeclId(type_t type);
+    std::string VarDeclId(type_t type);
 
-    void FuncDecl();
+    std::unique_ptr<ASTNode> FuncDecl();
 
     void FuncDeclParamList(std::vector<function_parameter_t> *function_);
 
-    void Block();
+    std::unique_ptr<ASTNode> Block();
 
-    void Stmt();
+    std::unique_ptr<ASTNode> Stmt();
 
-    void StmtList();
+    std::unique_ptr<ASTNode> StmtList();
 
-    type_t Expr();
+    std::unique_ptr<ASTNode> Expr();
 
     type_t Type();
 
     std::string Id();
 
-    type_t ComputeExpression(int precedence);
+    std::unique_ptr<ASTNode> ComputeExpression(int precedence);
 
-    type_t ComputeTerm();
-
-    void FuncCallParamList(std::string name, std::vector<type_t> *params);
+    std::unique_ptr<ASTNode> ComputeTerm();
+//
+//    void FuncCallParamList(std::string name, std::vector<type_t> *params);
 
 private:
-    std::string type_to_string(type_t type) {
+    static std::string type_to_string(type_t type) {
         switch (type) {
             case INTEGER:
                 return "int";
@@ -266,14 +251,14 @@ private:
         }
     }
 
-    std::string type_to_string2(type_t type, std::string s) {
+    std::string type_to_string2(type_t type, const std::string &s) {
         switch (type) {
             case INTEGER:
                 return "int";
             case CHAR:
                 return "char";
             case STRING:
-                return "char";
+                return string_format("char %s[]", s.c_str());
             case VOID:
                 return "void";
             case BOOL:
@@ -299,7 +284,7 @@ private:
         }
     }
 
-    bool is_array_type(type_t type) {
+    static bool is_array_type(type_t type) {
         switch (type) {
             case STRING:
                 return true;
@@ -315,12 +300,24 @@ private:
                 return true;
             case FLOAT_ARRAY:
                 return true;
-            default:
+            case UNDEFINED:
+                return false;
+            case VOID:
+                return false;
+            case INTEGER:
+                return false;
+            case CHAR:
+                return false;
+            case DOUBLE:
+                return false;
+            case FLOAT:
+                return false;
+            case BOOL:
                 return false;
         }
     }
 
-    type_t array_base_type(type_t type) {
+    static type_t array_base_type(type_t type) {
         switch (type) {
             case INTEGER_ARRAY:
                 return INTEGER;
@@ -334,6 +331,8 @@ private:
                 return DOUBLE;
             case FLOAT_ARRAY:
                 return FLOAT;
+            default:
+                return UNDEFINED;
         }
 
         return UNDEFINED;
@@ -349,8 +348,8 @@ private:
         return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
     }
 
-    void error(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
-               int lineNumber) {
+    static void error(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
+                      int lineNumber) {
 
         if (tokenValue == "EOF") {
             std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected '%s'", fileName.c_str(),
@@ -365,9 +364,9 @@ private:
         exit(EXIT_FAILURE);
     }
 
-    void error_no_quotes(const std::string &expectedToken, const std::string &tokenValue,
-                         const std::string &fileName,
-                         int lineNumber) {
+    static void error_no_quotes(const std::string &expectedToken, const std::string &tokenValue,
+                                const std::string &fileName,
+                                int lineNumber) {
         if (tokenValue == "EOF") {
             std::fprintf(stderr, "Parser error in file %s line %i near end of file\n\t Expected %s", fileName.c_str(),
                          lineNumber,

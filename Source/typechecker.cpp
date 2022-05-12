@@ -10,22 +10,30 @@
 #pragma ide diagnostic ignored "misc-no-recursion"
 
 #include "typechecker.h"
+#include "AST.h"
 
 #include <utility>
 
 // Program := Decl DecList | Decl
-void typechecker::Program() {
+std::unique_ptr<ASTNode> typechecker::Program() {
     if (peak_next_token().type == TOKEN_EOF)
-        return;
+        return nullptr;
 
-    Decl();
-    DeclList();
+    std::unique_ptr<ASTNode> root = std::make_unique<ASTNode>(
+            ASTNodeType::Program,
+            nullptr,
+            Decl(),
+            DeclList());
+
+    ASTNode::PrintTree(std::move(root));
+
+    return root;
 }
 
 // <Decl> := <VarDecl> | <FuncProto> | <FuncDef>
-void typechecker::Decl() {
+std::unique_ptr<ASTNode> typechecker::Decl() {
     if (peak_next_token().type == TOKEN_EOF) {
-        return;
+        return nullptr;
     }
 
     // <Decl> := <VarDecl> | <FuncDecl>
@@ -39,16 +47,12 @@ void typechecker::Decl() {
                 rollback();
                 rollback();
 
-                FuncDecl();
-
-                return;
+                return FuncDecl();
             } else if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON || TOKEN_SYMBOL_COMMA) {
                 rollback();
                 rollback();
 
-                VarDecl();
-
-                return;
+                return VarDecl();
             }
         }
     } else {
@@ -57,48 +61,75 @@ void typechecker::Decl() {
               peak_next_token().fileName,
               peak_next_token().lineNumber);
     }
+
+    return nullptr;
 }
 
 // <DeclList> := <Decl> <DeclList>
-void typechecker::DeclList() {
+std::unique_ptr<ASTNode> typechecker::DeclList() {
     if (peak_next_token().type == TOKEN_EOF)
-        return;
+        return nullptr;
 
-    Decl();
-    DeclList();
+    std::unique_ptr<ASTNode> node = std::make_unique<ASTNode>(
+            ASTNodeType::DeclList,
+            nullptr,
+            Decl(),
+            DeclList());
+
+    return node;
 }
 
 // <VarDecl> := <Type> <VarIdList> ';'
-void typechecker::VarDecl() {
+std::unique_ptr<ASTNode> typechecker::VarDecl() {
     type_t declType = Type();
 
-    VarDeclList(declType);
+    std::unique_ptr<ASTNode> varDeclNode = std::make_unique<ASTNode>(ASTNodeType::VarDecl);
+
+    varDeclNode->setNodeValueType(declType);
+
+    std::vector<std::string> ids = VarDeclList(declType);
+
+    for (auto &id: ids) {
+        varDeclNode->nodeValues.push_back(id);
+    }
 
     if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
         consume();
 
-        return;
+        return varDeclNode;
     } else {
         error_no_quotes("',' or ';'",
                         peak_next_token().value,
                         peak_next_token().fileName,
                         peak_next_token().lineNumber);
     }
+
+    return varDeclNode;
 }
 
 // <VarDeclIdList> := <VarDeclId> | <VarDeclId> ',' <VarDeclIdList>
-void typechecker::VarDeclList(type_t type) {
-    VarDeclId(type);
+std::vector<std::string> typechecker::VarDeclList(type_t type) {
+    std::vector<std::string> result;
+
+    std::string id = VarDeclId(type);
+
+    result.push_back(id);
 
     if (match(TOKEN_SYMBOL_COMMA)) {
         consume();
 
-        VarDeclList(type);
+        std::vector<std::string> ids = VarDeclList(type);
+
+        for (auto &i: ids) {
+            result.push_back(i);
+        }
     }
+
+    return result;
 }
 
 // <VarDeclId> := <Id> | <Id> '[' <NumberLiteral>']'
-void typechecker::VarDeclId(type_t type) {
+std::string typechecker::VarDeclId(type_t type) {
     std::string name = peak_next_token().value;
     std::string id = Id();
 
@@ -111,7 +142,7 @@ void typechecker::VarDeclId(type_t type) {
         type_error_list.push_back(s1);
         type_error_list.push_back(s2);
 
-        return;
+        return id;
     }
 
     if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
@@ -133,6 +164,8 @@ void typechecker::VarDeclId(type_t type) {
                 break;
             case STRING:
                 type = STRING_ARRAY;
+                break;
+            default:
                 break;
         }
     }
@@ -164,37 +197,7 @@ void typechecker::VarDeclId(type_t type) {
                 type_error_list.push_back(s2);
             }
         }
-    } else {
-        for (auto const &[key, val]: local_variables) {
-            if (key == id) {
-                auto s1 = string_format("Type checking error in file %s line %i\n",
-                                        tokens[currentTokenIndex].fileName.c_str(),
-                                        tokens[currentTokenIndex].lineNumber);
 
-                auto lineNumber = 0;
-
-                // FIXME: HACK TO GET LINE NUMBER. We would need to store the line number of a declared variable in the symbol table.
-                for (auto &token: tokens) {
-                    if (token.type == TOKEN_IDENTIFIER && token.value == id) {
-                        lineNumber = token.lineNumber;
-                        break;
-                    }
-                }
-
-                auto s2 = string_format("\tlocal %s %s duplicates local %s %s on line %i\n",
-                                        type_to_string(type).c_str(),
-                                        id.c_str(),
-                                        type_to_string(val).c_str(),
-                                        key.c_str(),
-                                        lineNumber);
-
-                type_error_list.push_back(s1);
-                type_error_list.push_back(s2);
-            }
-        }
-    }
-
-    if (global) {
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
 
@@ -234,6 +237,34 @@ void typechecker::VarDeclId(type_t type) {
             type_decl_list.push_back(s1);
         }
     } else {
+        for (auto const &[key, val]: local_variables) {
+            if (key == id) {
+                auto s1 = string_format("Type checking error in file %s line %i\n",
+                                        tokens[currentTokenIndex].fileName.c_str(),
+                                        tokens[currentTokenIndex].lineNumber);
+
+                auto lineNumber = 0;
+
+                // FIXME: HACK TO GET LINE NUMBER. We would need to store the line number of a declared variable in the symbol table.
+                for (auto &token: tokens) {
+                    if (token.type == TOKEN_IDENTIFIER && token.value == id) {
+                        lineNumber = token.lineNumber;
+                        break;
+                    }
+                }
+
+                auto s2 = string_format("\tlocal %s %s duplicates local %s %s on line %i\n",
+                                        type_to_string(type).c_str(),
+                                        id.c_str(),
+                                        type_to_string(val).c_str(),
+                                        key.c_str(),
+                                        lineNumber);
+
+                type_error_list.push_back(s1);
+                type_error_list.push_back(s2);
+            }
+        }
+
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
 
@@ -273,13 +304,25 @@ void typechecker::VarDeclId(type_t type) {
             type_decl_list.push_back(s1);
         }
     }
+
+    return id;
 }
 
-void typechecker::FuncDecl() {
+// <FuncDecl> ::= <Type> <Identifier> <FuncParams> <FuncBody> | <Type> <Identifier> <FuncParams>
+std::unique_ptr<ASTNode> typechecker::FuncDecl() {
     type_t type = Type();
     std::string id = Id();
 
-    auto *func_params = new std::vector<function_parameter_t>();
+    std::unique_ptr<ASTNode> func_proto_node = std::make_unique<ASTNode>(ASTNodeType::FuncProto);
+    std::unique_ptr<ASTNode> func_def_node = std::make_unique<ASTNode>(ASTNodeType::FuncDef);
+
+    std::unique_ptr<ASTNode> func_body_node = std::make_unique<ASTNode>(ASTNodeType::FuncBody);
+
+    func_proto_node->nodeValueType = type;
+    func_proto_node->nodeValues.push_back(id);
+
+    func_def_node->nodeValueType = type;
+    func_def_node->nodeValues.push_back(id);
 
     if (peak_next_token().type != TOKEN_SYMBOL_LEFT_PAREN) {
         error("(",
@@ -290,7 +333,20 @@ void typechecker::FuncDecl() {
         consume();
     }
 
+
+    // Handle Function Parameters
+    auto *func_params = new std::vector<function_parameter_t>();
+
     FuncDeclParamList(func_params);
+
+    std::map<std::string, type_t> param_map;
+
+    for (auto &param: *func_params) {
+        param_map[param.name] = param.type;
+    }
+
+    func_proto_node->nodeMap = param_map;
+    func_def_node->nodeMap = param_map;
 
     function_t function = {.name = id, .return_type = type, .parameters = *func_params};
 
@@ -310,7 +366,7 @@ void typechecker::FuncDecl() {
             type_error_list.push_back(s1);
             type_error_list.push_back(s2);
 
-            return;
+            return nullptr;
         } else {
             scene_list.push_back(func_param.name);
         }
@@ -380,22 +436,11 @@ void typechecker::FuncDecl() {
             }
         }
 
-        // Function isn't already defined.
-        bool b = false;
-
-        if (!b) {
-            functions.push_back(function);
-        } else {
-            auto error1 = string_format("Type checking error in file %s line %i\n",
-                                        tokens[currentTokenIndex].fileName.c_str(),
-                                        tokens[currentTokenIndex].lineNumber);
-
-            type_error_list.push_back(error1);
-        }
+        functions.push_back(function);
 
         local_variables.clear();
 
-        return;
+        return func_proto_node;
     }
         // Function Definition
     else if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACE) {
@@ -476,22 +521,12 @@ void typechecker::FuncDecl() {
                                    type_to_string(type).c_str(),
                                    id.c_str());
 
-        bool b = false;
-
-        if (!b) {
-            functions.push_back(function);
-            type_decl_list.push_back(decl2);
-        } else {
-            auto error2 = string_format("Type checking error in file %s line %i\n",
-                                        tokens[currentTokenIndex].fileName.c_str(),
-                                        tokens[currentTokenIndex].lineNumber);
-
-            type_error_list.push_back(error2);
-        }
+        functions.push_back(function);
+        type_decl_list.push_back(decl2);
 
         if (!function.parameters.empty()) {
             for (int i = 0; i <= function.parameters.size() - 1; i++) {
-                std::string s2 = "";
+                std::string s2;
 
                 if (!is_array_type(function.parameters[i].type)) {
                     s2 = string_format("    Line   %i: parameter %s %s\n",
@@ -502,9 +537,8 @@ void typechecker::FuncDecl() {
                     s2 = string_format("    Line   %i: parameter %s\n",
                                        tokens[currentTokenIndex].lineNumber,
                                        type_to_string2(function.parameters[i].type,
-                                                       function.parameters[i].name.c_str()).c_str());
+                                                       function.parameters[i].name).c_str());
                 }
-
 
                 type_decl_list.push_back(s2);
             }
@@ -515,20 +549,23 @@ void typechecker::FuncDecl() {
         function_return_type = type;
         found_return_statement = false;
 
-        Block();
+        func_body_node = Block();
+        func_def_node->setRightChild(std::move(func_body_node));
 
         is_in_function = false;
         function_name = "";
         function_return_type = type_t::UNDEFINED;
         found_return_statement = false;
 
-        return;
+        return func_def_node;
     } else {
         error("{' or ';",
               peak_next_token().value,
               peak_next_token().fileName,
               peak_next_token().lineNumber);
     }
+
+    return nullptr;
 }
 
 // FuncDeclParamList := e | FuncDeclParam | FuncDeclParam ',' FuncDeclParamList
@@ -582,7 +619,8 @@ void typechecker::FuncDeclParamList(std::vector<function_parameter_t> *function_
                       peak_next_token().lineNumber);
             }
 
-            Expr();
+            // FIXME: Fix this.
+            // Expr();
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                 consume();
@@ -612,13 +650,19 @@ void typechecker::FuncDeclParamList(std::vector<function_parameter_t> *function_
 }
 
 // Block := '{' Stmt StmtList '}'
-void typechecker::Block() {
+std::unique_ptr<ASTNode> typechecker::Block() {
+    std::unique_ptr<ASTNode> block;
+
     if (match(TOKEN_SYMBOL_LEFT_BRACE)) {
         consume();
 
         global = false;
 
-        StmtList();
+        block = std::make_unique<ASTNode>(
+                ASTNodeType::Block,
+                nullptr,
+                Stmt(),
+                StmtList());
 
         if (match(TOKEN_SYMBOL_RIGHT_BRACE)) {
             consume();
@@ -638,17 +682,23 @@ void typechecker::Block() {
               peak_next_token().fileName,
               peak_next_token().lineNumber);
     }
+
+    return block;
 }
 
-void typechecker::Stmt() {
+// TODO: Finish Loops
+std::unique_ptr<ASTNode> typechecker::Stmt() {
     // <Stmt> := ';'
     if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
         consume();
-        return;
+
+        return std::make_unique<ASTNode>(ASTNodeType::EmptyStmt);
     }
 
-        // <Stmt> := 'break' ';' | 'continue' ';'
-    else if (peak_next_token().type == TOKEN_KEYWORD_BREAK || peak_next_token().type == TOKEN_KEYWORD_CONTINUE) {
+    // <Stmt> := 'break' ';' | 'continue' ';'
+    if (peak_next_token().type == TOKEN_KEYWORD_BREAK || peak_next_token().type == TOKEN_KEYWORD_CONTINUE) {
+        token t = peak_next_token();
+
         consume();
 
         if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
@@ -660,21 +710,34 @@ void typechecker::Stmt() {
 
         consume();
 
-        return;
+        if (t.type == TOKEN_KEYWORD_BREAK) {
+            return std::make_unique<ASTNode>(ASTNodeType::BreakStmt);
+        } else if (t.type == TOKEN_KEYWORD_CONTINUE) {
+            return std::make_unique<ASTNode>(ASTNodeType::ContinueStmt);
+        } else {
+            return nullptr;
+        }
+
+        return nullptr;
     }
 
-        // <Stmt> := 'return' Expr ';' | 'return' ';'
-    else if (peak_next_token().type == TOKEN_KEYWORD_RETURN) {
+    // <Stmt> := 'return' Expr ';' | 'return' ';'
+    if (peak_next_token().type == TOKEN_KEYWORD_RETURN) {
+        auto return_stmt = std::make_unique<ASTNode>(ASTNodeType::ReturnStmt);
+
         if (is_in_function && !function_name.empty() && function_return_type != type_t::UNDEFINED) {
             consume();
 
             if (function_return_type == type_t::VOID) {
-                type_t type = Expr();
+                std::unique_ptr<ASTNode> node = Expr();
+                type_t type = node->getNodeValueType();
+
+                return_stmt->setRightChild(std::move(node));
 
                 if (type == VOID && peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
-                    return;
+                    return std::make_unique<ASTNode>(ASTNodeType::ReturnStmt);
                 } else if (type == UNDEFINED && peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
-                    return;
+                    return std::make_unique<ASTNode>(ASTNodeType::ReturnStmt);
                 } else {
                     auto s1 = string_format("Type checking error in file %s line %i\n",
                                             function_name.c_str(),
@@ -686,7 +749,7 @@ void typechecker::Stmt() {
                     type_error_list.push_back(s1);
                     type_error_list.push_back(s2);
 
-                    return;
+                    return nullptr;
                 }
 
                 if (peak_next_token().type != TOKEN_SYMBOL_SEMICOLON) {
@@ -707,10 +770,16 @@ void typechecker::Stmt() {
                     type_error_list.push_back(s1);
                     type_error_list.push_back(s2);
 
-                    return;
+                    return nullptr;
                 }
 
-                type_t type = Expr();
+                std::unique_ptr<ASTNode> node = Expr();
+                type_t type = node->getNodeValueType();
+
+                std::unique_ptr<ASTNode> expr = std::make_unique<ASTNode>(ASTNodeType::ExprStmt);
+
+                expr->setRightChild(std::move(node));
+                return_stmt->setRightChild(std::move(expr));
 
                 if (type != function_return_type) {
                     auto s1 = string_format("Type checking error in file %s line %i\n",
@@ -723,7 +792,7 @@ void typechecker::Stmt() {
                     type_error_list.push_back(s1);
                     type_error_list.push_back(s2);
 
-                    return;
+                    return nullptr;
                 }
             }
 
@@ -738,60 +807,61 @@ void typechecker::Stmt() {
 
             found_return_statement = true;
 
-            return;
+            return return_stmt;
         }
     }
 
-        // <IfStmt> := 'if' '(' Expr ')' <Block>
-        //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>*
-        //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>* else <Block>
-    else if (peak_next_token().type == TOKEN_KEYWORD_IF) {
-        IfLoop:
-        consume();
-
-        if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
+    // TODO: Loops and shit
+    /*
+            // <IfStmt> := 'if' '(' Expr ')' <Block>
+            //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>*
+            //    | 'if' '(' Expr ')' <Block> 'else' <IfStmt>* else <Block>
+        else if (peak_next_token().type == TOKEN_KEYWORD_IF) {
+            IfLoop:
             consume();
 
-            Expr();
-
-            if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
+            if (peak_next_token().type == TOKEN_SYMBOL_LEFT_PAREN) {
                 consume();
+
+                Expr();
+
+                if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN) {
+                    consume();
+                } else {
+                    error(")",
+                          peak_next_token().value,
+                          peak_next_token().fileName,
+                          peak_next_token().lineNumber);
+                }
+
+                Block();
+
+                if (peak_next_token().type == TOKEN_KEYWORD_ELSE) {
+                    consume();
+
+                    if (peak_next_token().type != TOKEN_KEYWORD_IF) {
+                        Block();
+
+                        if (peak_next_token().type == TOKEN_KEYWORD_ELSE) {
+                            error("identifier (within expression)",
+                                  peak_next_token().value,
+                                  peak_next_token().fileName,
+                                  peak_next_token().lineNumber);
+                        }
+                    } else if (peak_next_token().type == TOKEN_KEYWORD_IF) {
+                        goto IfLoop;
+                    }
+                }
             } else {
-                error(")",
+                error("(",
                       peak_next_token().value,
                       peak_next_token().fileName,
                       peak_next_token().lineNumber);
             }
 
-            Block();
-
-            if (peak_next_token().type == TOKEN_KEYWORD_ELSE) {
-                consume();
-
-                if (peak_next_token().type != TOKEN_KEYWORD_IF) {
-                    Block();
-
-                    if (peak_next_token().type == TOKEN_KEYWORD_ELSE) {
-                        error("identifier (within expression)",
-                              peak_next_token().value,
-                              peak_next_token().fileName,
-                              peak_next_token().lineNumber);
-                    }
-                } else if (peak_next_token().type == TOKEN_KEYWORD_IF) {
-                    goto IfLoop;
-                }
-            }
-        } else {
-            error("(",
-                  peak_next_token().value,
-                  peak_next_token().fileName,
-                  peak_next_token().lineNumber);
+            return;
         }
 
-        return;
-    }
-
-        // TODO: Check the for Stmt.
         // <ForStmt> := 'for' '(' <VarDecl> ';' <Expr> ';' <Expr> ';' ')' <Block>
     else if (peak_next_token().type == TOKEN_KEYWORD_FOR) {
         consume();
@@ -923,6 +993,8 @@ void typechecker::Stmt() {
         return;
     }
 
+    */
+
     if (peak_next_token().type == TOKEN_TYPE) {
         consume();
 
@@ -935,7 +1007,18 @@ void typechecker::Stmt() {
             VarDecl();
         }
     } else {
-        type_t type = Expr();
+        if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACE) {
+            return std::make_unique<ASTNode>(ASTNodeType::EmptyStmt);
+        }
+
+        std::unique_ptr<ASTNode> node = std::make_unique<ASTNode>(ASTNodeType::ExprStmt);
+
+        std::unique_ptr<ASTNode> expr = std::make_unique<ASTNode>(ASTNodeType::ExprStmt);
+        std::unique_ptr<ASTNode> stmt = Expr();
+
+        type_t type = stmt->getNodeValueType();
+
+        expr->setRightChild(std::move(stmt));
 
         if (type != UNDEFINED) {
             if (peak_next_token().lineNumber <= 9) {
@@ -953,11 +1036,15 @@ void typechecker::Stmt() {
         }
 
         consume();
+
+        return expr;
     }
 }
 
 // StmtList := Stmt | Stmt StmtList
-void typechecker::StmtList() {
+std::unique_ptr<ASTNode> typechecker::StmtList() {
+    std::unique_ptr<ASTNode> block = std::make_unique<ASTNode>(ASTNodeType::Block);
+
     if (peak_next_token().type == TOKEN_EOF) {
         error_no_quotes("identifier (within expression)",
                         peak_next_token().value,
@@ -966,50 +1053,57 @@ void typechecker::StmtList() {
     }
 
     if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACE) {
-        return;
+        return nullptr;
     }
 
-    Stmt();
-    StmtList();
+    std::unique_ptr<ASTNode> stmt = Stmt();
+    std::unique_ptr<ASTNode> stmtList = StmtList();
+
+    block->setLeftChild(std::move(stmt));
+    block->setRightChild(std::move(stmtList));
+
+    return block;
 }
 
-// <FuncCallParamList> := e | <Expr> | Expr ',' <FuncDeclParamList>
-void typechecker::FuncCallParamList(std::string funcName, std::vector<type_t> *types) {
-    if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
-        if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
-            error(")",
-                  peak_next_token().value,
-                  peak_next_token().fileName,
-                  peak_next_token().lineNumber);
-        }
+//// <FuncCallParamList> := e | <Expr> | Expr ',' <FuncDeclParamList>
+//void typechecker::FuncCallParamList(std::string funcName, std::vector<type_t> *types) {
+//    if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+//        if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
+//            error(")",
+//                  peak_next_token().value,
+//                  peak_next_token().fileName,
+//                  peak_next_token().lineNumber);
+//        }
+//
+//        type_t type = Expr();
+//
+//        types->push_back(type);
+//
+//        if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
+//            consume();
+//
+//            if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
+//                FuncCallParamList(std::move(funcName), types);
+//            } else {
+//                error("<Expr>",
+//                      peak_next_token().value,
+//                      peak_next_token().fileName,
+//                      peak_next_token().lineNumber);
+//            }
+//        }
+//    }
+//}
 
-        type_t type = Expr();
+std::unique_ptr<ASTNode> typechecker::Expr() {
+    std::unique_ptr<ASTNode> expr = ComputeExpression(1);
 
-        types->push_back(type);
-
-        if (peak_next_token().type == TOKEN_SYMBOL_COMMA) {
-            consume();
-
-            if (peak_next_token().type != TOKEN_SYMBOL_RIGHT_PAREN) {
-                FuncCallParamList(std::move(funcName), types);
-            } else {
-                error("<Expr>",
-                      peak_next_token().value,
-                      peak_next_token().fileName,
-                      peak_next_token().lineNumber);
-            }
-        }
-    }
+    return expr;
 }
 
-typechecker::type_t typechecker::Expr() {
-    type_t returnType = ComputeExpression(1);
+std::unique_ptr<ASTNode> typechecker::ComputeExpression(int precedence) {
+    std::unique_ptr<ASTNode> term1 = ComputeTerm();
 
-    return returnType;
-}
-
-typechecker::type_t typechecker::ComputeExpression(int precedence) {
-    type_t type1 = ComputeTerm();
+    type_t type1 = term1->getNodeValueType();
 
     int nextPrecedenceLevel;
 
@@ -1031,9 +1125,9 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
 
         if (!precedenceMap[peak_next_token().value] || precedenceMap[peak_next_token().value] < precedence) {
             break;
-        } else if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN
-                   || peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
-            return type1;
+        } else if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_PAREN ||
+                   peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
+            return term1;
         }
 
         std::string op = peak_next_token().value;
@@ -1052,7 +1146,9 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
 
         token token = tokens[currentTokenIndex];
 
-        type_t type2 = ComputeExpression(nextPrecedenceLevel);
+        std::unique_ptr<ASTNode> term2 = ComputeExpression(nextPrecedenceLevel);
+
+        type_t type2 = term2->getNodeValueType();
 
         if (type1 == VOID && type2 == VOID) {
             auto s1 = string_format("\"Type checking error in file %s line %i\n",
@@ -1080,10 +1176,14 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
                 type_error_list.push_back(s1);
                 type_error_list.push_back(s2);
 
-                return {};
+                return nullptr;
             }
 
-            return CHAR;
+            std::unique_ptr<ASTNode> expr = std::make_unique<ASTNode>(ASTNodeType::ExprTerm);
+
+            expr->setNodeValueType(CHAR);
+
+            return expr;
         } else {
             if (type1 != type2) {
                 auto s1 = string_format("Type checking error in file %s line %i\n",
@@ -1109,30 +1209,59 @@ typechecker::type_t typechecker::ComputeExpression(int precedence) {
         }
     }
 
-    return type1;
+    return term1;
 }
 
-typechecker::type_t typechecker::ComputeTerm() {
-    // Handle literals.
-    switch (peak_next_token().type) {
-        case TOKEN_LITERAL_NUMBER:
-            consume();
-            return type_t::INTEGER;
-        case TOKEN_LITERAL_REAL:
-            consume();
-            return type_t::FLOAT;
-        case TOKEN_LITERAL_FLOAT:
-            consume();
-            return type_t::FLOAT;
-        case TOKEN_LITERAL_CHAR:
-            consume();
-            return type_t::CHAR;
-        case TOKEN_LITERAL_STRING:
-            consume();
-            return type_t::STRING;
-        default:
-            break;
+std::unique_ptr<ASTNode> typechecker::ComputeTerm() {
+    // Handle Literals
+    if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
+        consume();
+
+        auto node_int = std::make_unique<ASTNode>(ASTNodeType::ExprLiteral);
+
+        node_int->setNodeValueType(INTEGER);
+        node_int->nodeValues.push_back(peak_next_token().value);
+
+        return node_int;
+    } else if (peak_next_token().type == TOKEN_LITERAL_REAL) {
+        consume();
+
+        auto node_real = std::make_unique<ASTNode>(ASTNodeType::ExprLiteral);
+
+        node_real->setNodeValueType(DOUBLE);
+        node_real->getNodeValues().push_back(peak_next_token().value);
+
+        return node_real;
+    } else if (peak_next_token().type == TOKEN_LITERAL_FLOAT) {
+        consume();
+
+        auto node_float = std::make_unique<ASTNode>(ASTNodeType::ExprLiteral);
+
+        node_float->setNodeValueType(FLOAT);
+        node_float->getNodeValues().push_back(peak_next_token().value);
+
+        return node_float;
+    } else if (peak_next_token().type == TOKEN_LITERAL_CHAR) {
+        consume();
+
+        auto node_char = std::make_unique<ASTNode>(ASTNodeType::ExprLiteral);
+
+        node_char->setNodeValueType(CHAR);
+        node_char->getNodeValues().push_back(peak_next_token().value);
+
+        return node_char;
+    } else if (peak_next_token().type == TOKEN_LITERAL_STRING) {
+        consume();
+
+        auto node_string = std::make_unique<ASTNode>(ASTNodeType::ExprLiteral);
+
+        node_string->setNodeValueType(STRING);
+        node_string->getNodeValues().push_back(peak_next_token().value);
+
+        return node_string;
     }
+
+    /*
 
     // Handle decrement and increment operators.
     if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT
@@ -1357,10 +1486,17 @@ typechecker::type_t typechecker::ComputeTerm() {
         }
     }
 
+    */
+
     // Handle declarations of variables.
     if (peak_next_token().type == TOKEN_TYPE) {
         type_t type = Type();
         std::string name = Id();
+
+        std::unique_ptr<ASTNode> node = std::make_unique<ASTNode>(ASTNodeType::VarDecl);
+
+        node->getNodeValues().push_back(name);
+        node->setNodeValueType(type);
 
         if (local_variables[name]) {
             int lineNumber;
@@ -1390,7 +1526,7 @@ typechecker::type_t typechecker::ComputeTerm() {
             type_error_list.push_back(s1);
             type_error_list.push_back(s2);
 
-            return type;
+            return nullptr;
         }
 
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
@@ -1403,8 +1539,10 @@ typechecker::type_t typechecker::ComputeTerm() {
                       peak_next_token().lineNumber);
             }
 
-            // TODO: Type check this.
-            Expr();
+            std::unique_ptr<ASTNode> array_index_expression_node = Expr();
+            type_t array_index_type = array_index_expression_node->getNodeValueType();
+
+            node->rightChild = std::move(array_index_expression_node);
 
             if (peak_next_token().type == TOKEN_SYMBOL_RIGHT_BRACKET) {
                 consume();
@@ -1416,7 +1554,7 @@ typechecker::type_t typechecker::ComputeTerm() {
             }
         }
 
-        return type;
+        return node;
     }
 
     // Identifiers and l-values.
@@ -1425,6 +1563,10 @@ typechecker::type_t typechecker::ComputeTerm() {
 
         consume();
 
+        std::unique_ptr<ASTNode> node;
+
+        // TODO: FuncCall
+        /*
         // Function Call
         // <Term> := <Ident> '(' <ExprList> ')';
         // <Term> := <Ident> '(' <Expr> ')';
@@ -1542,10 +1684,13 @@ typechecker::type_t typechecker::ComputeTerm() {
                 return return_type;
             }
         }
+         */
 
         // An l-value with left and right brackets.
         if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
             consume();
+
+            node = std::make_unique<ASTNode>(ASTNodeType::ExprVar);
 
             if (peak_next_token().type == TOKEN_SYMBOL_LEFT_BRACKET) {
                 error("identifier (within expression)",
@@ -1554,7 +1699,8 @@ typechecker::type_t typechecker::ComputeTerm() {
                       peak_next_token().lineNumber);
             }
 
-            type_t type = Expr();
+            std::unique_ptr<ASTNode> array_index_expr = Expr();
+            type_t type = array_index_expr->getNodeValueType();
 
             if (type != type_t::INTEGER) {
                 auto s1 = string_format("Type checking error in file %s line %i\n",
@@ -1566,8 +1712,10 @@ typechecker::type_t typechecker::ComputeTerm() {
                 type_error_list.push_back(s1);
                 type_error_list.push_back(s2);
 
-                return {};
+                return nullptr;
             }
+
+            node->setRightChild(std::move(array_index_expr));
 
             if (peak_next_token().type == TOKEN_LITERAL_NUMBER) {
                 consume();
@@ -1591,7 +1739,9 @@ typechecker::type_t typechecker::ComputeTerm() {
                         return {};
                     }
 
-                    return array_base_type(variable.second);
+                    node->setNodeValueType(variable.second);
+
+                    return node;
                 }
             }
 
@@ -1609,11 +1759,14 @@ typechecker::type_t typechecker::ComputeTerm() {
                         return {};
                     }
 
-                    return array_base_type(variable.second);
+                    node->setNodeValueType(variable.second);
+
+                    return node;
                 }
             }
         }
 
+        /*
         // An l-value with increment or decrement.
         if (peak_next_token().type == TOKEN_SYMBOL_INCREMENT ||
             peak_next_token().type == TOKEN_SYMBOL_DECREMENT) {
@@ -1749,7 +1902,11 @@ typechecker::type_t typechecker::ComputeTerm() {
 
             return {};
         }
+
+         */
     }
+
+    /*
 
     // Unary operators.
     if (peak_next_token().type == TOKEN_SYMBOL_MINUS_SIGN
@@ -1924,11 +2081,13 @@ typechecker::type_t typechecker::ComputeTerm() {
         }
     }
 
-    return UNDEFINED;
+    */
+
+    return nullptr;
 }
 
 // <Type> := int | double | char | void | string
-typechecker::type_t typechecker::Type() {
+type_t typechecker::Type() {
     type_t type = type_t::UNDEFINED;
 
     if (peak_next_token().type == TOKEN_TYPE) {

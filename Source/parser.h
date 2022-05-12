@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "token.h"
+#include "types.h"
 
 class parser {
 public:
@@ -9,16 +10,6 @@ public:
         LEFT_TO_RIGHT,
         RIGHT_TO_LEFT
     } associativity_t;
-
-    typedef enum {
-        UNDEFINED = 0,
-        VOID = 1,
-        INTEGER = 2,
-        CHAR = 3,
-        DOUBLE = 4,
-        STRING = 5,
-        FLOAT = 6
-    } type_t;
 
     typedef struct {
         type_t type;
@@ -251,11 +242,14 @@ public:
     }
 
 private:
-    static void error(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
+    static void
+    error(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName, int lineNumber);
 
-    static void error_no_quotes(const std::string& expectedToken, const std::string& tokenValue, const std::string& fileName, int lineNumber);
+    static void
+    error_no_quotes(const std::string &expectedToken, const std::string &tokenValue, const std::string &fileName,
+                    int lineNumber);
 
-    static void unexpected_token_error(const std::string& tokenValue, const std::string& fileName, int lineNumber);
+    static void unexpected_token_error(const std::string &tokenValue, const std::string &fileName, int lineNumber);
 
     /**
      * Gets the next token without consuming the current token.
