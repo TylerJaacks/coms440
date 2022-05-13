@@ -24,6 +24,7 @@ typedef enum {
     FuncCall,
     Block,
     EmptyStmt,
+    StmtList,
     ExprStmt,
     IfStmt,
     WhileStmt,
@@ -32,9 +33,7 @@ typedef enum {
     ReturnStmt,
     BreakStmt,
     ContinueStmt,
-    ExprTerm,
-    ExprBinOp,
-    ExprUnaryOp,
+    ExprOp,
     ExprLiteral,
     ExprVar,
 } ASTNodeType;
@@ -48,15 +47,15 @@ public:
     ASTNodeType nodeType = Undefined;
 
     type_t nodeValueType = type_t::UNDEFINED;
-    std::unique_ptr<ASTNode> parent, leftChild, rightChild;
+    std::shared_ptr<ASTNode> parent, leftChild, rightChild;
     std::vector<std::string> nodeValues;
     std::map<std::string, type_t> nodeMap;
 
 public:
     ASTNode(ASTNodeType nodeType,
-            std::unique_ptr<ASTNode> parent,
-            std::unique_ptr<ASTNode> leftChild,
-            std::unique_ptr<ASTNode> rightChild);
+            std::shared_ptr<ASTNode> parent,
+            std::shared_ptr<ASTNode> leftChild,
+            std::shared_ptr<ASTNode> rightChild);
 
     ~ASTNode() = default;
 
@@ -78,13 +77,13 @@ public:
 
     void setNodeValueType(type_t valueType) { this->nodeValueType = valueType; }
 
-    void setParent(std::unique_ptr<ASTNode> parentNode) { this->parent = std::move(parentNode); }
+    void setParent(std::shared_ptr<ASTNode> parentNode) { this->parent = std::move(parentNode); }
 
-    void setLeftChild(std::unique_ptr<ASTNode> leftChildNode) { this->leftChild = std::move(leftChildNode); }
+    void setLeftChild(std::shared_ptr<ASTNode> leftChildNode) { this->leftChild = std::move(leftChildNode); }
 
-    void setRightChild(std::unique_ptr<ASTNode> rightChildNode) { this->rightChild = std::move(rightChildNode); }
+    void setRightChild(std::shared_ptr<ASTNode> rightChildNode) { this->rightChild = std::move(rightChildNode); }
 
-    static void PrintTree(std::unique_ptr<ASTNode> node);
+    static void PrintTree(std::shared_ptr<ASTNode> node);
 };
 
 #endif //COMS440_AST_H

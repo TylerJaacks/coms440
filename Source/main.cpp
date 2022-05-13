@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 
+#include "Codegen.h"
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
@@ -188,20 +189,38 @@ void handle_arguments(struct arguments *arguments) {
             if (arguments->output_path == "a.out") {
                 // lexer program_lexer = lexer(arguments->input_path, buffer);
 
+                /*
+                 *              Expr
+                 *              /  \
+                 *             1    +
+                 *                 / \
+                 *                2   *
+                 *                   / \
+                 *                  3   4
+                 */
                 lexer program_lexer = lexer(arguments->input_path,
-                                            "int A[3]; int foo() { A[0]; }");
+                                            "void test1()\n"
+                                            "{\n"
+                                            "  1 + 2 + 3;\n"
+                                            "}");
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
                 typechecker program_typechecker(tokens);
 
-                std::unique_ptr<ASTNode> node = program_typechecker.Program();
-
+                std::shared_ptr<ASTNode> node = program_typechecker.Program();
 
                 if (program_typechecker.type_error_list.empty()) {
                     for (auto &i: program_typechecker.type_decl_list) {
                         fprintf(stdout, "%s", i.c_str());
                     }
+
+                    ASTNode::PrintTree(std::move(node));
+
+                    // Codegen codegen = Codegen(std::move(node));
+
+                    // std::vector<std::string> programCode = codegen.GenerateCode();
+
                 } else if (!program_typechecker.type_error_list.empty()) {
                     for (auto &i: program_typechecker.type_error_list) {
                         fprintf(stderr, "%s", i.c_str());

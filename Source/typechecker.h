@@ -46,6 +46,8 @@ public:
 
     bool found_return_statement = false;
 
+    std::shared_ptr<ASTNode> root;
+
 public:
     typechecker(std::vector<token> tokens) {
         this->tokens = tokens;
@@ -183,37 +185,37 @@ public:
     }
 
 public:
-    std::unique_ptr<ASTNode> Program();
+    std::shared_ptr<ASTNode> Program();
 
-    std::unique_ptr<ASTNode> Decl();
+    std::shared_ptr<ASTNode> Decl();
 
-    std::unique_ptr<ASTNode> DeclList();
+    std::shared_ptr<ASTNode> DeclList();
 
-    std::unique_ptr<ASTNode> VarDecl();
+    std::shared_ptr<ASTNode> VarDecl();
 
     std::vector<std::string> VarDeclList(type_t type);
 
     std::string VarDeclId(type_t type);
 
-    std::unique_ptr<ASTNode> FuncDecl();
+    std::shared_ptr<ASTNode> FuncDecl();
 
     void FuncDeclParamList(std::vector<function_parameter_t> *function_);
 
-    std::unique_ptr<ASTNode> Block();
+    std::shared_ptr<ASTNode> Block();
 
-    std::unique_ptr<ASTNode> Stmt();
+    std::shared_ptr<ASTNode> Stmt();
 
-    std::unique_ptr<ASTNode> StmtList();
+    std::shared_ptr<ASTNode> StmtList();
 
-    std::unique_ptr<ASTNode> Expr();
+    std::shared_ptr<ASTNode> Expr();
 
     type_t Type();
 
     std::string Id();
 
-    std::unique_ptr<ASTNode> ComputeExpression(int precedence);
+    std::shared_ptr<ASTNode> ComputeExpression(int precedence);
 
-    std::unique_ptr<ASTNode> ComputeTerm();
+    std::shared_ptr<ASTNode> ComputeTerm();
 //
 //    void FuncCallParamList(std::string name, std::vector<type_t> *params);
 
@@ -343,7 +345,7 @@ private:
         int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
         if (size_s <= 0) { throw std::runtime_error("Error during formatting."); }
         auto size = static_cast<size_t>( size_s );
-        std::unique_ptr<char[]> buf(new char[size]);
+        std::shared_ptr<char[]> buf(new char[size]);
         std::snprintf(buf.get(), size, format.c_str(), args ...);
         return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
     }
