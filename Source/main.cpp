@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <string>
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
+#include "typechecker.h"
 
 #define SUCCESS 0
 #define ERROR -1
@@ -69,7 +67,7 @@ void handle_arguments(struct arguments *arguments) {
         print_usage_statements();
     }
 
-    if (arguments->mode == '0') {
+    if      (arguments->mode == '0') {
         if (strcmp(arguments->output_path.c_str(), "a.out") == 0) {
             print_about_statements();
         }
@@ -78,7 +76,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '1') {
-        char *buffer = 0;
+        char *buffer = nullptr;
         long length;
 
         FILE *f = fopen(arguments->input_path.c_str(), "rb");
@@ -123,9 +121,14 @@ void handle_arguments(struct arguments *arguments) {
             }
         }
     }
+<<<<<<< HEAD
     else if (arguments->mode == '2') {
 <<<<<<< Updated upstream
         char *buffer = 0;
+=======
+    else if (arguments->mode == '3') {
+        char *buffer = nullptr;
+>>>>>>> 4a12976cb3e260456003cc085d1bc0dec2066604
         long length;
 
         FILE *f = fopen(arguments->input_path.c_str(), "rb");
@@ -169,7 +172,12 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
+=======
+                fprintf(stdout, "File %s is syntactically correct.", arguments->input_path.c_str());
+
+>>>>>>> 4a12976cb3e260456003cc085d1bc0dec2066604
                 exit(SUCCESS);
             }
             else if (arguments->output_path != "a.out") {
@@ -183,6 +191,8 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
+                fprintf(f, "File %s is syntactically correct.", arguments->input_path.c_str());
+
                 exit(SUCCESS);
             }
         }
@@ -190,8 +200,71 @@ void handle_arguments(struct arguments *arguments) {
         parser.S();
 >>>>>>> Stashed changes
     }
-    else if (arguments->mode == '3') {
+    else if (arguments->mode == '4') {
+        char *buffer = nullptr;
+        long length;
 
+        FILE *f = fopen(arguments->input_path.c_str(), "rb");
+
+        if (f) {
+            fseek(f, 0, SEEK_END);
+            length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            buffer = (char*) malloc(length);
+            if (buffer) {
+                fread(buffer, 1, length, f);
+            }
+            fclose(f);
+        }
+
+        if (buffer) {
+            if (arguments->output_path == "a.out") {
+                lexer program_lexer = lexer(arguments->input_path, buffer);
+
+                std::vector<token> tokens = program_lexer.getTokens();
+
+                typechecker program_typechecker(tokens);
+
+                program_typechecker.Program();
+
+                if (program_typechecker.type_error_list.empty()) {
+                    for (auto & i : program_typechecker.type_decl_list) {
+                        fprintf(stdout, "%s", i.c_str());
+                    }
+                }
+                else if (!program_typechecker.type_error_list.empty()) {
+                    for (auto & i : program_typechecker.type_error_list) {
+                        fprintf(stderr, "%s", i.c_str());
+                    }
+                }
+
+                exit(SUCCESS);
+            }
+            else if (arguments->output_path != "a.out") {
+                lexer program_lexer = lexer(arguments->input_path, buffer);
+
+                std::vector<token> tokens = program_lexer.getTokens();
+
+                FILE *fileOutput = fopen(arguments->output_path.c_str(), "w+");
+
+                typechecker program_typechecker(tokens);
+
+                program_typechecker.Program();
+
+                if (program_typechecker.type_error_list.empty()) {
+                    for (int i = 0; i < program_typechecker.type_decl_list.size() - 1; i++) {
+                        fprintf(fileOutput, "%s", program_typechecker.type_decl_list[i].c_str());
+                    }
+                }
+                else if (!program_typechecker.type_error_list.empty()) {
+                    for (int i = 0; i < program_typechecker.type_error_list.size() - 1; i++) {
+                        fprintf(fileOutput, "%s", program_typechecker.type_error_list[i].c_str());
+                    }
+                }
+
+                exit(SUCCESS);
+            }
+        }
     }
 
     if (isdigit(arguments->mode)) {
