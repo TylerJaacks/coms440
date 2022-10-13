@@ -124,6 +124,7 @@ void handle_arguments(struct arguments *arguments) {
         }
     }
     else if (arguments->mode == '2') {
+<<<<<<< Updated upstream
         char *buffer = 0;
         long length;
 
@@ -143,6 +144,24 @@ void handle_arguments(struct arguments *arguments) {
         if (buffer) {
             if (arguments->output_path == "a.out") {
                 lexer program_lexer = lexer(arguments->input_path, buffer);
+=======
+        std::string testProgram = "int a, b = 0;\n"
+                                  "double d;\n"
+                                  "\n"
+                                  "char c = 'c';\n"
+                                  "\n"
+                                  "void printf(char t);\n"
+                                  "\n"
+                                  "int main()\n"
+                                  "{\n"
+                                  "    if (true)\n"
+                                  "        printf(\"Hello, world!\");\n"
+                                  "    else {\n"
+                                  "    }\n"
+                                  "\n"
+                                  "    return 1;\n"
+                                  "}";
+>>>>>>> Stashed changes
 
                 std::vector<token> tokens = program_lexer.getTokens();
 
@@ -150,6 +169,7 @@ void handle_arguments(struct arguments *arguments) {
 
                 program_parser.Program();
 
+<<<<<<< Updated upstream
                 exit(SUCCESS);
             }
             else if (arguments->output_path != "a.out") {
@@ -166,6 +186,9 @@ void handle_arguments(struct arguments *arguments) {
                 exit(SUCCESS);
             }
         }
+=======
+        parser.S();
+>>>>>>> Stashed changes
     }
     else if (arguments->mode == '3') {
 

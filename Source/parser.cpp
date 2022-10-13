@@ -10,6 +10,7 @@ token parser::peak_next_token() {
     return tokens[currentTokenIndex + 1];
 }
 
+<<<<<<< Updated upstream
 token parser::peak(int n) {
     return tokens[currentTokenIndex + n];
 }
@@ -21,9 +22,10 @@ token parser::consume() {
         token = tokens[currentTokenIndex];
     }
 
+=======
+void parser::consume_token()  {
+>>>>>>> Stashed changes
     currentTokenIndex += 1;
-
-    return token;
 }
 
 bool parser::match(token_type type) {
@@ -34,10 +36,17 @@ bool parser::match(token_type type) {
     return false;
 }
 
+<<<<<<< Updated upstream
 // Program := Decl DecList | Decl
 void parser::Program() {
     if (peak_next_token().type == TOKEN_EOF)
         return;
+=======
+// Program := DeclList Decl
+void parser::Program() {
+    DeclList();
+}
+>>>>>>> Stashed changes
 
     Decl();
     DeclList();
@@ -45,6 +54,7 @@ void parser::Program() {
 
 // Decl :=  VarDecl | FuncDecl
 void parser::Decl() {
+<<<<<<< Updated upstream
     if (peak_next_token().type == TOKEN_EOF)
         return;
 
@@ -54,6 +64,10 @@ void parser::Decl() {
     } else {
         VarDecl();
     }
+=======
+    VarDecl();
+    FuncDecl();
+>>>>>>> Stashed changes
 }
 
 // DeclList :=  Decl DeclList
@@ -61,8 +75,19 @@ void parser::DeclList() {
     if (peak_next_token().type == TOKEN_EOF)
         return;
 
+<<<<<<< Updated upstream
     Decl();
     DeclList();
+=======
+    if (peak_next_token().type == TOKEN_SYMBOL_SEMICOLON) {
+        consume_token();
+    }
+    else {
+        fprintf(stderr, "ERROR: Expected a ';' but got a %s at the end of a variable declaration.", peak_next_token().value.c_str());
+    }
+
+    return;
+>>>>>>> Stashed changes
 }
 
 // VarDecl := Type VarDeclList ';' | Type VarDeclList '=' Expr ';'

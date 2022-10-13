@@ -10,6 +10,7 @@ PreprocessorDirectiveList := PreprocessorDirectiveList PreprocessorDirective | P
 PreprocessorDirectiveLiteral := #include | #define | #undef | #ifdef | #ifndef | #if | #else | #endif | empty
 
 DeclList := DeclList Decl | Decl
+
 Decl := VarDecl | FuncDecl
 
 VarDecl := Type VarDeclList;

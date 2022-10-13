@@ -11,6 +11,7 @@ public:
     int currentTokenIndex;
 
 public:
+<<<<<<< Updated upstream
     parser(std::vector<token> tokens) {
         this->tokens = tokens;
         currentTokenIndex = -1;
@@ -64,6 +65,9 @@ public:
 
         this->precedenceMap[","] = 0;
     }
+=======
+    parser(std::vector<token> tokens) { this->tokens = tokens; currentTokenIndex = -1;}
+>>>>>>> Stashed changes
 
 private:
     void error(std::string expectedToken, std::string tokenValue, std::string fileName, int lineNumber);
@@ -90,9 +94,12 @@ private:
 
     /**
      * Gets the current token and advance the current token index.
-     * @return the current token.
      */
+<<<<<<< Updated upstream
     token consume();
+=======
+    void consume_token();
+>>>>>>> Stashed changes
 
 public:
     void Program();
